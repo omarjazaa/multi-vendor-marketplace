@@ -49,4 +49,12 @@ class User extends Authenticatable
             'role' => UserRole::class,
         ];
     }
+
+    /**
+     * Determine whether the user has the supplied role value.
+     */
+    public function hasRole(string $role): bool
+    {
+        return $this->role === UserRole::tryFrom($role);
+    }
 }
