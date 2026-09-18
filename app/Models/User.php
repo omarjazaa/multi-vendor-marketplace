@@ -5,6 +5,7 @@ namespace App\Models;
 use App\Enums\UserRole;
 use Database\Factories\UserFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Laravel\Sanctum\HasApiTokens;
@@ -56,5 +57,13 @@ class User extends Authenticatable
     public function hasRole(string $role): bool
     {
         return $this->role === UserRole::tryFrom($role);
+    }
+
+    /**
+     * Get the vendor profile owned by this user.
+     */
+    public function vendorProfile(): HasOne
+    {
+        return $this->hasOne(VendorProfile::class);
     }
 }
