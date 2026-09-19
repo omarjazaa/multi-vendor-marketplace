@@ -3,11 +3,14 @@
 namespace App\Providers;
 
 use App\Enums\UserRole;
+use App\Events\VendorApproved;
+use App\Listeners\SendVendorWelcomeNotification;
 use App\Models\User;
 use App\Repositories\Contracts\StoreRepositoryInterface;
 use App\Repositories\Contracts\UserRepositoryInterface;
 use App\Repositories\EloquentStoreRepository;
 use App\Repositories\EloquentUserRepository;
+use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\ServiceProvider;
 
@@ -27,6 +30,7 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+        Event::listen(VendorApproved::class, SendVendorWelcomeNotification::class);
         Gate::define('customer', fn (User $user): bool => $user->hasRole(UserRole::CUSTOMER->value));
         Gate::define('vendor', fn (User $user): bool => $user->hasRole(UserRole::VENDOR->value));
         Gate::define('admin', fn (User $user): bool => $user->hasRole(UserRole::ADMIN->value));

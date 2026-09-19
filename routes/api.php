@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Api\AdminStoreController;
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\RoleAccessController;
 use App\Http\Controllers\Api\StoreController;
@@ -12,6 +13,10 @@ Route::prefix('auth')->group(function (): void {
 });
 
 Route::middleware('auth:sanctum')->group(function (): void {
+    Route::post('admin/stores/{store}/approve', [AdminStoreController::class, 'approve'])
+        ->middleware('role:admin');
+    Route::post('admin/stores/{store}/reject', [AdminStoreController::class, 'reject'])
+        ->middleware('role:admin');
     Route::post('vendor/store', [StoreController::class, 'apply'])
         ->middleware('role:vendor');
     Route::get('vendor/access-check', [RoleAccessController::class, 'vendor'])
