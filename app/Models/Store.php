@@ -7,6 +7,7 @@ use Database\Factories\StoreFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Store extends Model
 {
@@ -44,5 +45,11 @@ class Store extends Model
     public function vendorProfile(): BelongsTo
     {
         return $this->belongsTo(VendorProfile::class);
+    }
+
+    /** Get products listed by this store. */
+    public function products(): HasMany
+    {
+        return $this->hasMany(Product::class);
     }
 }

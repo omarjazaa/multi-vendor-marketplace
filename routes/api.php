@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Api\AdminCategoryController;
 use App\Http\Controllers\Api\AdminStoreController;
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\RoleAccessController;
@@ -13,6 +14,9 @@ Route::prefix('auth')->group(function (): void {
 });
 
 Route::middleware('auth:sanctum')->group(function (): void {
+    Route::apiResource('admin/categories', AdminCategoryController::class)
+        ->except(['show'])
+        ->middleware('role:admin');
     Route::post('admin/stores/{store}/approve', [AdminStoreController::class, 'approve'])
         ->middleware('role:admin');
     Route::post('admin/stores/{store}/reject', [AdminStoreController::class, 'reject'])

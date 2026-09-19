@@ -6,8 +6,10 @@ use App\Enums\UserRole;
 use App\Events\VendorApproved;
 use App\Listeners\SendVendorWelcomeNotification;
 use App\Models\User;
+use App\Repositories\Contracts\CategoryRepositoryInterface;
 use App\Repositories\Contracts\StoreRepositoryInterface;
 use App\Repositories\Contracts\UserRepositoryInterface;
+use App\Repositories\EloquentCategoryRepository;
 use App\Repositories\EloquentStoreRepository;
 use App\Repositories\EloquentUserRepository;
 use Illuminate\Support\Facades\Event;
@@ -23,6 +25,7 @@ class AppServiceProvider extends ServiceProvider
     {
         $this->app->bind(UserRepositoryInterface::class, EloquentUserRepository::class);
         $this->app->bind(StoreRepositoryInterface::class, EloquentStoreRepository::class);
+        $this->app->bind(CategoryRepositoryInterface::class, EloquentCategoryRepository::class);
     }
 
     /**
