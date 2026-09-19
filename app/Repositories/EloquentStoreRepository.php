@@ -2,6 +2,7 @@
 
 namespace App\Repositories;
 
+use App\Enums\StoreStatus;
 use App\Models\Store;
 use App\Models\VendorProfile;
 use App\Repositories\Contracts\StoreRepositoryInterface;
@@ -34,5 +35,19 @@ class EloquentStoreRepository implements StoreRepositoryInterface
     public function create(array $attributes): Store
     {
         return Store::create($attributes);
+    }
+
+    /**
+     * Persist a review decision across the store and vendor profile records.
+     */
+    public function updateReviewStatus(Store $store, StoreStatus $status): Store
+    {
+        $store->update(['status' => $status]);
+        $store->vendorProfile()->update([
+            'verification_status' => $status,
+            'verified_at' => $status === StoreStatus::APPROVED ? now() : null,
+        ]);
+
+        return $store->fresh(['vendorProfile.user']);
     }
 }

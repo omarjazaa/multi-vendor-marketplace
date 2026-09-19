@@ -2,6 +2,7 @@
 
 namespace App\Repositories\Contracts;
 
+use App\Enums\StoreStatus;
 use App\Models\Store;
 use App\Models\VendorProfile;
 
@@ -25,4 +26,9 @@ interface StoreRepositoryInterface
      * @param  array<string, mixed>  $attributes
      */
     public function create(array $attributes): Store;
+
+    /**
+     * Update a store and its vendor profile with the review decision.
+     */
+    public function updateReviewStatus(Store $store, StoreStatus $status): Store;
 }
