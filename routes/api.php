@@ -5,6 +5,7 @@ use App\Http\Controllers\Api\AdminStoreController;
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\RoleAccessController;
 use App\Http\Controllers\Api\StoreController;
+use App\Http\Controllers\Api\VendorProductController;
 use Illuminate\Support\Facades\Route;
 
 Route::prefix('auth')->group(function (): void {
@@ -22,6 +23,9 @@ Route::middleware('auth:sanctum')->group(function (): void {
     Route::post('admin/stores/{store}/reject', [AdminStoreController::class, 'reject'])
         ->middleware('role:admin');
     Route::post('vendor/store', [StoreController::class, 'apply'])
+        ->middleware('role:vendor');
+    Route::apiResource('vendor/products', VendorProductController::class)
+        ->only(['index', 'store', 'update', 'destroy'])
         ->middleware('role:vendor');
     Route::get('vendor/access-check', [RoleAccessController::class, 'vendor'])
         ->middleware('role:vendor');
