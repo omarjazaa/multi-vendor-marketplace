@@ -12,7 +12,7 @@ class EloquentProductRepository implements ProductRepositoryInterface
     public function forVendor(int $userId): iterable
     {
         return Product::whereHas('store.vendorProfile', fn ($query) => $query->where('user_id', $userId))
-            ->with(['store', 'category'])
+            ->with(['store', 'category', 'images'])
             ->latest()
             ->get();
     }
@@ -20,7 +20,7 @@ class EloquentProductRepository implements ProductRepositoryInterface
     /** @param array<string, mixed> $attributes */
     public function create(array $attributes): Product
     {
-        return Product::create($attributes)->load(['store', 'category']);
+        return Product::create($attributes)->load(['store', 'category', 'images']);
     }
 
     /** @param array<string, mixed> $attributes */
@@ -28,7 +28,7 @@ class EloquentProductRepository implements ProductRepositoryInterface
     {
         $product->update($attributes);
 
-        return $product->fresh(['store', 'category']);
+        return $product->fresh(['store', 'category', 'images']);
     }
 
     public function delete(Product $product): void

@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\StoreProductRequest;
 use App\Http\Requests\UpdateProductRequest;
+use App\Http\Resources\ProductResource;
 use App\Http\Traits\ApiResponse;
 use App\Models\Product;
 use App\Models\Store;
@@ -24,7 +25,9 @@ class VendorProductController extends Controller
         /** @var User $vendor */
         $vendor = request()->user();
 
-        return $this->successResponse(['products' => $this->products->forVendor($vendor->id)]);
+        return $this->successResponse([
+            'products' => ProductResource::collection($this->products->forVendor($vendor->id)),
+        ]);
     }
 
     public function store(StoreProductRequest $request): JsonResponse
@@ -33,7 +36,7 @@ class VendorProductController extends Controller
         Gate::authorize('create', [Product::class, $store]);
 
         return $this->successResponse(
-            ['product' => $this->products->create($request->validated())],
+            ['product' => ProductResource::make($this->products->create($request->validated()))],
             'Product created.',
             201,
         );
@@ -44,7 +47,7 @@ class VendorProductController extends Controller
         Gate::authorize('update', $product);
 
         return $this->successResponse([
-            'product' => $this->products->update($product, $request->validated()),
+            'product' => ProductResource::make($this->products->update($product, $request->validated())),
         ], 'Product updated.');
     }
 
