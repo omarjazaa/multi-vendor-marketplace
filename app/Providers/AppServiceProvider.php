@@ -9,11 +9,13 @@ use App\Models\Product;
 use App\Models\User;
 use App\Policies\ProductPolicy;
 use App\Repositories\Contracts\CategoryRepositoryInterface;
+use App\Repositories\Contracts\InventoryRepositoryInterface;
 use App\Repositories\Contracts\ProductImageRepositoryInterface;
 use App\Repositories\Contracts\ProductRepositoryInterface;
 use App\Repositories\Contracts\StoreRepositoryInterface;
 use App\Repositories\Contracts\UserRepositoryInterface;
 use App\Repositories\EloquentCategoryRepository;
+use App\Repositories\EloquentInventoryRepository;
 use App\Repositories\EloquentProductImageRepository;
 use App\Repositories\EloquentProductRepository;
 use App\Repositories\EloquentStoreRepository;
@@ -34,6 +36,7 @@ class AppServiceProvider extends ServiceProvider
         $this->app->bind(CategoryRepositoryInterface::class, EloquentCategoryRepository::class);
         $this->app->bind(ProductRepositoryInterface::class, EloquentProductRepository::class);
         $this->app->bind(ProductImageRepositoryInterface::class, EloquentProductImageRepository::class);
+        $this->app->bind(InventoryRepositoryInterface::class, EloquentInventoryRepository::class);
     }
 
     /**

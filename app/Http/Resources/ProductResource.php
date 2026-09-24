@@ -25,6 +25,10 @@ class ProductResource extends JsonResource
                 'images',
                 fn () => ProductImageResource::collection($this->images),
             ),
+            'inventory' => $this->whenLoaded(
+                'inventory',
+                fn () => $this->inventory === null ? null : InventoryResource::make($this->inventory),
+            ),
             'store' => $this->whenLoaded('store', fn (): array => [
                 'id' => $this->store->id,
                 'name' => $this->store->name,
