@@ -5,6 +5,7 @@ use App\Http\Controllers\Api\AdminStoreController;
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\RoleAccessController;
 use App\Http\Controllers\Api\StoreController;
+use App\Http\Controllers\Api\VendorInventoryController;
 use App\Http\Controllers\Api\VendorProductController;
 use App\Http\Controllers\Api\VendorProductImageController;
 use Illuminate\Support\Facades\Route;
@@ -32,6 +33,8 @@ Route::middleware('auth:sanctum')->group(function (): void {
         Route::get('images', [VendorProductImageController::class, 'index']);
         Route::post('images', [VendorProductImageController::class, 'store']);
         Route::delete('images/{image}', [VendorProductImageController::class, 'destroy']);
+        Route::get('inventory', [VendorInventoryController::class, 'show']);
+        Route::put('inventory', [VendorInventoryController::class, 'update']);
     });
     Route::get('vendor/access-check', [RoleAccessController::class, 'vendor'])
         ->middleware('role:vendor');
