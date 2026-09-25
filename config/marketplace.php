@@ -60,4 +60,20 @@ return [
 
     ],
 
+    /*
+    |--------------------------------------------------------------------------
+    | Shopping Cart
+    |--------------------------------------------------------------------------
+    |
+    | Per line quantity ceiling shared by the cart validation rules and the
+    | cart service so the buy limit is declared exactly once.
+    |
+    */
+
+    'cart' => [
+
+        'max_quantity_per_item' => 99,
+
+    ],
+
 ];
