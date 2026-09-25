@@ -3,12 +3,17 @@
 use App\Http\Controllers\Api\AdminCategoryController;
 use App\Http\Controllers\Api\AdminStoreController;
 use App\Http\Controllers\Api\AuthController;
+use App\Http\Controllers\Api\ProductCatalogController;
 use App\Http\Controllers\Api\RoleAccessController;
 use App\Http\Controllers\Api\StoreController;
 use App\Http\Controllers\Api\VendorInventoryController;
 use App\Http\Controllers\Api\VendorProductController;
 use App\Http\Controllers\Api\VendorProductImageController;
 use Illuminate\Support\Facades\Route;
+
+// Public catalog — browsable by guests, no authentication required.
+Route::get('products', [ProductCatalogController::class, 'index']);
+Route::get('products/{product}', [ProductCatalogController::class, 'show'])->whereNumber('product');
 
 Route::prefix('auth')->group(function (): void {
     Route::post('register', [AuthController::class, 'register']);
