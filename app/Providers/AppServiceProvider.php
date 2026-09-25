@@ -5,15 +5,19 @@ namespace App\Providers;
 use App\Enums\UserRole;
 use App\Events\VendorApproved;
 use App\Listeners\SendVendorWelcomeNotification;
+use App\Models\Cart;
 use App\Models\Product;
 use App\Models\User;
+use App\Policies\CartPolicy;
 use App\Policies\ProductPolicy;
+use App\Repositories\Contracts\CartRepositoryInterface;
 use App\Repositories\Contracts\CategoryRepositoryInterface;
 use App\Repositories\Contracts\InventoryRepositoryInterface;
 use App\Repositories\Contracts\ProductImageRepositoryInterface;
 use App\Repositories\Contracts\ProductRepositoryInterface;
 use App\Repositories\Contracts\StoreRepositoryInterface;
 use App\Repositories\Contracts\UserRepositoryInterface;
+use App\Repositories\EloquentCartRepository;
 use App\Repositories\EloquentCategoryRepository;
 use App\Repositories\EloquentInventoryRepository;
 use App\Repositories\EloquentProductImageRepository;
@@ -37,6 +41,7 @@ class AppServiceProvider extends ServiceProvider
         $this->app->bind(ProductRepositoryInterface::class, EloquentProductRepository::class);
         $this->app->bind(ProductImageRepositoryInterface::class, EloquentProductImageRepository::class);
         $this->app->bind(InventoryRepositoryInterface::class, EloquentInventoryRepository::class);
+        $this->app->bind(CartRepositoryInterface::class, EloquentCartRepository::class);
     }
 
     /**
@@ -49,5 +54,6 @@ class AppServiceProvider extends ServiceProvider
         Gate::define('vendor', fn (User $user): bool => $user->hasRole(UserRole::VENDOR->value));
         Gate::define('admin', fn (User $user): bool => $user->hasRole(UserRole::ADMIN->value));
         Gate::policy(Product::class, ProductPolicy::class);
+        Gate::policy(Cart::class, CartPolicy::class);
     }
 }

@@ -3,6 +3,7 @@
 use App\Http\Controllers\Api\AdminCategoryController;
 use App\Http\Controllers\Api\AdminStoreController;
 use App\Http\Controllers\Api\AuthController;
+use App\Http\Controllers\Api\CartController;
 use App\Http\Controllers\Api\ProductCatalogController;
 use App\Http\Controllers\Api\RoleAccessController;
 use App\Http\Controllers\Api\StoreController;
@@ -31,6 +32,13 @@ Route::middleware('auth:sanctum')->group(function (): void {
         ->middleware('role:admin');
     Route::post('vendor/store', [StoreController::class, 'apply'])
         ->middleware('role:vendor');
+    Route::middleware('role:customer')->group(function (): void {
+        Route::get('cart', [CartController::class, 'show']);
+        Route::delete('cart', [CartController::class, 'clear']);
+        Route::post('cart/items', [CartController::class, 'store']);
+        Route::put('cart/items/{item}', [CartController::class, 'update']);
+        Route::delete('cart/items/{item}', [CartController::class, 'destroy']);
+    });
     Route::apiResource('vendor/products', VendorProductController::class)
         ->only(['index', 'store', 'update', 'destroy'])
         ->middleware('role:vendor');
