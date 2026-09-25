@@ -32,4 +32,32 @@ return [
 
     ],
 
+    /*
+    |--------------------------------------------------------------------------
+    | Public Catalog
+    |--------------------------------------------------------------------------
+    |
+    | The guest facing catalog reads its paging and sorting rules from here so
+    | the request validation layer, the catalog service and the repository all
+    | agree on a single source of truth for defaults and allowed sort keys.
+    |
+    */
+
+    'catalog' => [
+
+        'default_per_page' => 12,
+        'max_per_page' => 50,
+
+        'default_sort' => 'latest',
+        'sorts' => [
+            'latest' => ['created_at', 'desc'],
+            'oldest' => ['created_at', 'asc'],
+            'price_asc' => ['base_price', 'asc'],
+            'price_desc' => ['base_price', 'desc'],
+            'name_asc' => ['name', 'asc'],
+            'name_desc' => ['name', 'desc'],
+        ],
+
+    ],
+
 ];
