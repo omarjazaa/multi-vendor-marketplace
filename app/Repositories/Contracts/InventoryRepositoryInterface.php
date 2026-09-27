@@ -14,4 +14,12 @@ interface InventoryRepositoryInterface
 
     /** @param array<string, mixed> $attributes */
     public function update(Inventory $inventory, array $attributes): Inventory;
+
+    /**
+     * Atomically deduct stock for an order line.
+     *
+     * Runs as a single guarded UPDATE (quantity >= requested) so concurrent
+     * checkouts can never drive the level negative.
+     */
+    public function decrementQuantity(Product $product, int $quantity): bool;
 }

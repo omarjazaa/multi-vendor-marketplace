@@ -6,13 +6,16 @@ use App\Enums\UserRole;
 use App\Events\VendorApproved;
 use App\Listeners\SendVendorWelcomeNotification;
 use App\Models\Cart;
+use App\Models\Order;
 use App\Models\Product;
 use App\Models\User;
 use App\Policies\CartPolicy;
+use App\Policies\OrderPolicy;
 use App\Policies\ProductPolicy;
 use App\Repositories\Contracts\CartRepositoryInterface;
 use App\Repositories\Contracts\CategoryRepositoryInterface;
 use App\Repositories\Contracts\InventoryRepositoryInterface;
+use App\Repositories\Contracts\OrderRepositoryInterface;
 use App\Repositories\Contracts\ProductImageRepositoryInterface;
 use App\Repositories\Contracts\ProductRepositoryInterface;
 use App\Repositories\Contracts\StoreRepositoryInterface;
@@ -20,6 +23,7 @@ use App\Repositories\Contracts\UserRepositoryInterface;
 use App\Repositories\EloquentCartRepository;
 use App\Repositories\EloquentCategoryRepository;
 use App\Repositories\EloquentInventoryRepository;
+use App\Repositories\EloquentOrderRepository;
 use App\Repositories\EloquentProductImageRepository;
 use App\Repositories\EloquentProductRepository;
 use App\Repositories\EloquentStoreRepository;
@@ -42,6 +46,7 @@ class AppServiceProvider extends ServiceProvider
         $this->app->bind(ProductImageRepositoryInterface::class, EloquentProductImageRepository::class);
         $this->app->bind(InventoryRepositoryInterface::class, EloquentInventoryRepository::class);
         $this->app->bind(CartRepositoryInterface::class, EloquentCartRepository::class);
+        $this->app->bind(OrderRepositoryInterface::class, EloquentOrderRepository::class);
     }
 
     /**
@@ -55,5 +60,6 @@ class AppServiceProvider extends ServiceProvider
         Gate::define('admin', fn (User $user): bool => $user->hasRole(UserRole::ADMIN->value));
         Gate::policy(Product::class, ProductPolicy::class);
         Gate::policy(Cart::class, CartPolicy::class);
+        Gate::policy(Order::class, OrderPolicy::class);
     }
 }

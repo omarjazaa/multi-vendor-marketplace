@@ -6,8 +6,10 @@ use RuntimeException;
 
 class InsufficientStockException extends RuntimeException
 {
-    public function __construct(public readonly int $available)
-    {
-        parent::__construct("Only {$available} units are available.");
+    public function __construct(
+        public readonly int $available,
+        public readonly ?string $productName = null,
+    ) {
+        parent::__construct('Only '.$available.' units are available.');
     }
 }
