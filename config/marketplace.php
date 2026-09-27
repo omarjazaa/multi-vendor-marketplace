@@ -76,4 +76,24 @@ return [
 
     ],
 
+    /*
+    |--------------------------------------------------------------------------
+    | Checkout
+    |--------------------------------------------------------------------------
+    |
+    | Checkout rules live here: the status a fresh order receives, the payment
+    | methods the API accepts, how many cart lines a single order may hold and
+    | the page size used when customers browse their order history.
+    |
+    */
+
+    'checkout' => [
+
+        'default_status' => 'pending',
+        'payment_methods' => ['cod', 'card', 'bank_transfer'],
+        'max_items_per_order' => 50,
+        'orders_per_page' => 15,
+
+    ],
+
 ];

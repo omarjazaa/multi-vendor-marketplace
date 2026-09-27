@@ -27,6 +27,23 @@ class EloquentInventoryRepository implements InventoryRepositoryInterface
         return $inventory->refresh();
     }
 
+    /**
+     * Atomically deduct stock for an order line.
+     *
+     * The WHERE guard (quantity >= requested) and the decrement happen in one
+     * UPDATE statement, so the affected-rows count tells us whether the shelf
+     * held enough units: 0 rows means insufficient or untracked stock.
+     */
+    public function decrementQuantity(Product $product, int $quantity): bool
+    {
+        $affected = Inventory::query()
+            ->where('product_id', $product->id)
+            ->where('quantity', '>=', $quantity)
+            ->decrement('quantity', $quantity);
+
+        return (int) $affected > 0;
+    }
+
     /** Read the platform default alert threshold used for new stock records. */
     private function defaultLowStockThreshold(): int
     {

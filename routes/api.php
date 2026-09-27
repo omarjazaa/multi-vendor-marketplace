@@ -4,6 +4,7 @@ use App\Http\Controllers\Api\AdminCategoryController;
 use App\Http\Controllers\Api\AdminStoreController;
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\CartController;
+use App\Http\Controllers\Api\OrderController;
 use App\Http\Controllers\Api\ProductCatalogController;
 use App\Http\Controllers\Api\RoleAccessController;
 use App\Http\Controllers\Api\StoreController;
@@ -38,7 +39,12 @@ Route::middleware('auth:sanctum')->group(function (): void {
         Route::post('cart/items', [CartController::class, 'store']);
         Route::put('cart/items/{item}', [CartController::class, 'update']);
         Route::delete('cart/items/{item}', [CartController::class, 'destroy']);
+        // Checkout is customer only; order history stays reachable for admins
+        // so support staff can inspect any receipt through the policy.
+        Route::post('checkout', [OrderController::class, 'checkout']);
     });
+    Route::get('orders', [OrderController::class, 'index']);
+    Route::get('orders/{order}', [OrderController::class, 'show']);
     Route::apiResource('vendor/products', VendorProductController::class)
         ->only(['index', 'store', 'update', 'destroy'])
         ->middleware('role:vendor');
