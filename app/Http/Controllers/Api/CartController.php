@@ -3,7 +3,9 @@
 namespace App\Http\Controllers\Api;
 
 use App\Exceptions\InsufficientStockException;
+use App\Exceptions\InvalidCouponException;
 use App\Http\Controllers\Controller;
+use App\Http\Requests\ShowCartRequest;
 use App\Http\Requests\StoreCartItemRequest;
 use App\Http\Requests\UpdateCartItemRequest;
 use App\Http\Resources\CartResource;
@@ -11,6 +13,8 @@ use App\Http\Traits\ApiResponse;
 use App\Models\Cart;
 use App\Models\CartItem;
 use App\Services\CartService;
+use App\Services\Pricing\CartSummary;
+use App\Services\PricingService;
 use App\Services\ProductCatalogService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -23,13 +27,25 @@ class CartController extends Controller
     public function __construct(
         private readonly CartService $cart,
         private readonly ProductCatalogService $catalog,
+        private readonly PricingService $pricing,
     ) {}
 
-    public function show(Request $request): JsonResponse
+    /**
+     * View the cart with its pricing summary (Day 14): subtotal, discount,
+     * tax and total from the Decorator pricing engine. Pass ?coupon=CODE to
+     * preview a coupon without applying it to the stored cart.
+     */
+    public function show(ShowCartRequest $request): JsonResponse
     {
-        return $this->respondWithCart(
-            $this->cart->forUser((int) $request->user()->id),
-        );
+        $cart = $this->cart->forUser((int) $request->user()->id);
+
+        try {
+            $summary = $this->pricing->summarize($cart, $request->validated('coupon'));
+        } catch (InvalidCouponException $exception) {
+            return $this->couponConflict($exception);
+        }
+
+        return $this->respondWithCart($cart, summary: $summary);
     }
 
     public function store(StoreCartItemRequest $request): JsonResponse
@@ -80,13 +96,34 @@ class CartController extends Controller
         return $this->respondWithCart($cart, 'Cart cleared.');
     }
 
-    /** Return the cart freshly loaded with its items and products. */
-    private function respondWithCart(Cart $cart, string $message = 'Success.', int $status = 200): JsonResponse
-    {
+    /** Return the cart freshly loaded with its items, products and live pricing breakdown. */
+    private function respondWithCart(
+        Cart $cart,
+        string $message = 'Success.',
+        int $status = 200,
+        ?CartSummary $summary = null,
+    ): JsonResponse {
+        $cart->load('items.product');
+
         return $this->successResponse(
-            ['cart' => CartResource::make($cart->load('items.product'))],
+            [
+                'cart' => CartResource::make($cart),
+                // Every cart response carries the current pricing summary;
+                // show() may pass one already computed against a coupon.
+                'summary' => ($summary ?? $this->pricing->summarize($cart))->toArray(),
+            ],
             $message,
             $status,
+        );
+    }
+
+    /** Signal that the requested coupon cannot price this cart. */
+    private function couponConflict(InvalidCouponException $exception): JsonResponse
+    {
+        return $this->errorResponse(
+            'Coupon cannot be applied.',
+            ['coupon' => $exception->getMessage()],
+            422,
         );
     }
 
