@@ -96,4 +96,31 @@ return [
 
     ],
 
+    /*
+    |--------------------------------------------------------------------------
+    | Order Fulfilment & Management
+    |--------------------------------------------------------------------------
+    |
+    | Order lifecycle transitions allowed in the system, plus pagination
+    | settings for vendor and admin order listings.
+    |
+    */
+
+    'orders' => [
+
+        'vendor_per_page' => 15,
+        'admin_per_page' => 15,
+
+        'filter_statuses' => ['pending', 'paid', 'cancelled', 'shipped', 'delivered'],
+
+        'transitions' => [
+            'pending' => ['paid', 'cancelled'],
+            'paid' => ['shipped', 'cancelled'],
+            'shipped' => ['delivered'],
+            'cancelled' => [],
+            'delivered' => [],
+        ],
+
+    ],
+
 ];
