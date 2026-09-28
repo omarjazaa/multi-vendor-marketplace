@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Enums\OrderStatus;
 use App\Exceptions\EmptyCartException;
 use App\Exceptions\InsufficientStockException;
+use App\Exceptions\InvalidOrderTransitionException;
 use App\Models\Cart;
 use App\Models\CartItem;
 use App\Models\Order;
@@ -80,5 +81,44 @@ class OrderService
             $userId,
             (int) config('marketplace.checkout.orders_per_page'),
         );
+    }
+
+    /** Paginate the order lines a vendor must fulfil, optionally filtered by status. */
+    public function linesForVendor(int $userId, ?string $status): LengthAwarePaginator
+    {
+        return $this->orders->linesForVendor(
+            $userId,
+            ['status' => $status],
+            (int) config('marketplace.orders.vendor_per_page'),
+        );
+    }
+
+    /** Paginate every order in the system for the admin listing. */
+    public function allOrders(?string $status): LengthAwarePaginator
+    {
+        return $this->orders->allForAdmin(
+            ['status' => $status],
+            (int) config('marketplace.orders.admin_per_page'),
+        );
+    }
+
+    /**
+     * Move an order to the next status when the configured transition map allows it.
+     *
+     * The map lives in config/marketplace.php (marketplace.orders.transitions), so
+     * lifecycle rules are declared once and shared by every actor. Authorization
+     * (who may apply a transition) stays in the controller/policy layer.
+     *
+     * @throws InvalidOrderTransitionException when the transition is not allowed
+     */
+    public function transitionTo(Order $order, OrderStatus $target): Order
+    {
+        $allowed = (array) config("marketplace.orders.transitions.{$order->status->value}", []);
+
+        if (! in_array($target->value, $allowed, true)) {
+            throw new InvalidOrderTransitionException($order->status->value, $target->value);
+        }
+
+        return $this->orders->updateStatus($order, $target);
     }
 }

@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Api\AdminCategoryController;
+use App\Http\Controllers\Api\AdminOrderController;
 use App\Http\Controllers\Api\AdminStoreController;
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\CartController;
@@ -9,6 +10,7 @@ use App\Http\Controllers\Api\ProductCatalogController;
 use App\Http\Controllers\Api\RoleAccessController;
 use App\Http\Controllers\Api\StoreController;
 use App\Http\Controllers\Api\VendorInventoryController;
+use App\Http\Controllers\Api\VendorOrderController;
 use App\Http\Controllers\Api\VendorProductController;
 use App\Http\Controllers\Api\VendorProductImageController;
 use Illuminate\Support\Facades\Route;
@@ -33,6 +35,14 @@ Route::middleware('auth:sanctum')->group(function (): void {
         ->middleware('role:admin');
     Route::post('vendor/store', [StoreController::class, 'apply'])
         ->middleware('role:vendor');
+    Route::prefix('vendor/orders')->middleware('role:vendor')->group(function (): void {
+        Route::get('', [VendorOrderController::class, 'index']);
+        Route::patch('{order}/status', [VendorOrderController::class, 'updateStatus']);
+    });
+    Route::prefix('admin/orders')->middleware('role:admin')->group(function (): void {
+        Route::get('', [AdminOrderController::class, 'index']);
+        Route::patch('{order}/status', [AdminOrderController::class, 'updateStatus']);
+    });
     Route::middleware('role:customer')->group(function (): void {
         Route::get('cart', [CartController::class, 'show']);
         Route::delete('cart', [CartController::class, 'clear']);
