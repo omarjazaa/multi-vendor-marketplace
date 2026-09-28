@@ -123,4 +123,24 @@ return [
 
     ],
 
+    /*
+    |--------------------------------------------------------------------------
+    | Pricing
+    |--------------------------------------------------------------------------
+    |
+    | The pricing engine reads its tax rate and the automatic (no-code)
+    | site discount here, so the Decorator pipeline and its validation rules
+    | share one source of truth instead of carrying magic numbers.
+    |
+    */
+
+    'pricing' => [
+
+        'tax_rate' => (float) env('MARKETPLACE_TAX_RATE', 0.05),
+
+        'site_discount_type' => env('MARKETPLACE_SITE_DISCOUNT_TYPE', 'percentage'),
+        'site_discount_value' => (float) env('MARKETPLACE_SITE_DISCOUNT_VALUE', 0),
+
+    ],
+
 ];

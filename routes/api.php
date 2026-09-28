@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Api\AdminCategoryController;
+use App\Http\Controllers\Api\AdminCouponController;
 use App\Http\Controllers\Api\AdminOrderController;
 use App\Http\Controllers\Api\AdminStoreController;
 use App\Http\Controllers\Api\AuthController;
@@ -9,6 +10,7 @@ use App\Http\Controllers\Api\OrderController;
 use App\Http\Controllers\Api\ProductCatalogController;
 use App\Http\Controllers\Api\RoleAccessController;
 use App\Http\Controllers\Api\StoreController;
+use App\Http\Controllers\Api\VendorCouponController;
 use App\Http\Controllers\Api\VendorInventoryController;
 use App\Http\Controllers\Api\VendorOrderController;
 use App\Http\Controllers\Api\VendorProductController;
@@ -33,7 +35,11 @@ Route::middleware('auth:sanctum')->group(function (): void {
         ->middleware('role:admin');
     Route::post('admin/stores/{store}/reject', [AdminStoreController::class, 'reject'])
         ->middleware('role:admin');
+    Route::post('admin/coupons', [AdminCouponController::class, 'store'])
+        ->middleware('role:admin');
     Route::post('vendor/store', [StoreController::class, 'apply'])
+        ->middleware('role:vendor');
+    Route::post('vendor/coupons', [VendorCouponController::class, 'store'])
         ->middleware('role:vendor');
     Route::prefix('vendor/orders')->middleware('role:vendor')->group(function (): void {
         Route::get('', [VendorOrderController::class, 'index']);

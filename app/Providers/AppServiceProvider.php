@@ -14,6 +14,7 @@ use App\Policies\OrderPolicy;
 use App\Policies\ProductPolicy;
 use App\Repositories\Contracts\CartRepositoryInterface;
 use App\Repositories\Contracts\CategoryRepositoryInterface;
+use App\Repositories\Contracts\CouponRepositoryInterface;
 use App\Repositories\Contracts\InventoryRepositoryInterface;
 use App\Repositories\Contracts\OrderRepositoryInterface;
 use App\Repositories\Contracts\ProductImageRepositoryInterface;
@@ -22,6 +23,7 @@ use App\Repositories\Contracts\StoreRepositoryInterface;
 use App\Repositories\Contracts\UserRepositoryInterface;
 use App\Repositories\EloquentCartRepository;
 use App\Repositories\EloquentCategoryRepository;
+use App\Repositories\EloquentCouponRepository;
 use App\Repositories\EloquentInventoryRepository;
 use App\Repositories\EloquentOrderRepository;
 use App\Repositories\EloquentProductImageRepository;
@@ -47,6 +49,7 @@ class AppServiceProvider extends ServiceProvider
         $this->app->bind(InventoryRepositoryInterface::class, EloquentInventoryRepository::class);
         $this->app->bind(CartRepositoryInterface::class, EloquentCartRepository::class);
         $this->app->bind(OrderRepositoryInterface::class, EloquentOrderRepository::class);
+        $this->app->bind(CouponRepositoryInterface::class, EloquentCouponRepository::class);
     }
 
     /**
