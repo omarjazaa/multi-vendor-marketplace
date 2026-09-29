@@ -3,7 +3,9 @@
 namespace App\Http\Controllers\Api;
 
 use App\Exceptions\EmptyCartException;
+use App\Exceptions\FraudRiskException;
 use App\Exceptions\InsufficientStockException;
+use App\Exceptions\InvalidCouponException;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\PlaceOrderRequest;
 use App\Http\Resources\OrderResource;
@@ -31,11 +33,30 @@ class OrderController extends Controller
         $cart = $this->cart->forUser((int) $request->user()->id);
 
         try {
-            $orders = $this->orders->place($cart, $request->validated('payment_method'));
+            $orders = $this->orders->place(
+                $cart,
+                $request->validated('payment_method'),
+                $request->validated('coupon'),
+            );
         } catch (EmptyCartException) {
             return $this->errorResponse(
                 'Your cart is empty.',
                 ['cart' => 'Add at least one item before checking out.'],
+                422,
+            );
+        } catch (InvalidCouponException $exception) {
+            // Same envelope as the cart-summary preview so clients handle both
+            // surfaces with one code path.
+            return $this->errorResponse(
+                'Coupon cannot be applied.',
+                ['coupon' => $exception->getMessage()],
+                422,
+            );
+        } catch (FraudRiskException $exception) {
+            // Name the exact rule that tripped so support can trace a block.
+            return $this->errorResponse(
+                "Checkout rejected by rule {$exception->rule}.",
+                ['fraud' => $exception->getMessage()],
                 422,
             );
         } catch (InsufficientStockException $exception) {

@@ -43,7 +43,8 @@ class CheckoutTest extends TestCase
             'data' => [
                 'orders' => [
                     [
-                        'id', 'user_id', 'store_id', 'status', 'payment_method', 'total_price',
+                        'id', 'user_id', 'store_id', 'status', 'payment_method',
+                        'discount', 'tax', 'total_price',
                         'items', 'created_at', 'updated_at',
                     ],
                 ],
@@ -58,7 +59,10 @@ class CheckoutTest extends TestCase
             ->assertJsonPath('data.orders.0.store_id', $store->id)
             ->assertJsonPath('data.orders.0.status', 'pending')
             ->assertJsonPath('data.orders.0.payment_method', 'card')
-            ->assertJsonPath('data.orders.0.total_price', '129.98') // 2 × 49.99 + 3 × 10.00
+            // No coupon: only the configured 5% tax lands on the order.
+            ->assertJsonPath('data.orders.0.discount', '0.00')
+            ->assertJsonPath('data.orders.0.tax', '6.50') // 129.98 × 5% → 6.499 rounds to 6.50
+            ->assertJsonPath('data.orders.0.total_price', '136.48') // 2 × 49.99 + 3 × 10.00 + 6.50 tax
             ->assertJsonCount(2, 'data.orders.0.items')
             ->assertJsonPath('data.orders.0.items.0.name', 'Desk Lamp')
             ->assertJsonPath('data.orders.0.items.0.unit_price', '49.99')
@@ -101,10 +105,14 @@ class CheckoutTest extends TestCase
             ->assertJsonPath('message', 'Orders placed.')
             ->assertJsonCount(2, 'data.orders')
             ->assertJsonPath('data.orders.0.store_id', $alpha->id)
-            ->assertJsonPath('data.orders.0.total_price', '104.98') // 2 × 49.99 + 5.00
+            ->assertJsonPath('data.orders.0.discount', '0.00')
+            ->assertJsonPath('data.orders.0.tax', '5.25') // 104.98 × 5% → 5.249 rounds to 5.25
+            ->assertJsonPath('data.orders.0.total_price', '110.23') // 2 × 49.99 + 5.00 + 5.25 tax
             ->assertJsonCount(2, 'data.orders.0.items')
             ->assertJsonPath('data.orders.1.store_id', $beta->id)
-            ->assertJsonPath('data.orders.1.total_price', '30.00') // 3 × 10.00
+            ->assertJsonPath('data.orders.1.discount', '0.00')
+            ->assertJsonPath('data.orders.1.tax', '1.50') // 30.00 × 5%
+            ->assertJsonPath('data.orders.1.total_price', '31.50') // 3 × 10.00 + 1.50 tax
             ->assertJsonCount(1, 'data.orders.1.items')
             ->assertJsonPath('data.orders.1.items.0.name', 'Trail Mug');
 
@@ -186,7 +194,8 @@ class CheckoutTest extends TestCase
         $this->actingAs($first, 'sanctum')
             ->postJson('/api/checkout')
             ->assertCreated()
-            ->assertJsonPath('data.orders.0.total_price', '40.00');
+            ->assertJsonPath('data.orders.0.tax', '2.00')
+            ->assertJsonPath('data.orders.0.total_price', '42.00'); // 2 × 20.00 + 5% tax
 
         $this->assertDatabaseHas('inventories', ['product_id' => $product->id, 'quantity' => 1]);
 
@@ -218,7 +227,7 @@ class CheckoutTest extends TestCase
             ->assertCreated();
 
         $response
-            ->assertJsonPath('data.orders.0.total_price', '49.99')
+            ->assertJsonPath('data.orders.0.total_price', '52.49') // 49.99 + 5% tax
             ->assertJsonPath('data.orders.0.items.0.unit_price', '49.99');
 
         $this->assertDatabaseHas('order_items', [

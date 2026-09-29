@@ -15,13 +15,15 @@ class Order extends Model
     use HasFactory;
 
     /** @var list<string> */
-    protected $fillable = ['user_id', 'store_id', 'status', 'payment_method', 'total_price'];
+    protected $fillable = ['user_id', 'store_id', 'status', 'payment_method', 'discount', 'tax', 'total_price'];
 
     /** @return array<string, string> */
     protected function casts(): array
     {
         return [
             'status' => OrderStatus::class,
+            'discount' => 'decimal:2',
+            'tax' => 'decimal:2',
             'total_price' => 'decimal:2',
         ];
     }
