@@ -31,7 +31,7 @@ class OrderController extends Controller
         $cart = $this->cart->forUser((int) $request->user()->id);
 
         try {
-            $order = $this->orders->place($cart, $request->validated('payment_method'));
+            $orders = $this->orders->place($cart, $request->validated('payment_method'));
         } catch (EmptyCartException) {
             return $this->errorResponse(
                 'Your cart is empty.',
@@ -46,9 +46,11 @@ class OrderController extends Controller
             );
         }
 
+        // One order per vendor (Day 15): a single-store cart still returns a
+        // one-element array so clients always read data.orders.
         return $this->successResponse(
-            ['order' => OrderResource::make($order)],
-            'Order placed.',
+            ['orders' => OrderResource::collection($orders)->resolve($request)],
+            $orders->count() > 1 ? 'Orders placed.' : 'Order placed.',
             201,
         );
     }

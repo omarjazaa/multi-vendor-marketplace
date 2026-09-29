@@ -15,7 +15,7 @@ class Order extends Model
     use HasFactory;
 
     /** @var list<string> */
-    protected $fillable = ['user_id', 'status', 'payment_method', 'total_price'];
+    protected $fillable = ['user_id', 'store_id', 'status', 'payment_method', 'total_price'];
 
     /** @return array<string, string> */
     protected function casts(): array
@@ -30,6 +30,12 @@ class Order extends Model
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);
+    }
+
+    /** Get the vendor store this split order belongs to (null for legacy rows). */
+    public function store(): BelongsTo
+    {
+        return $this->belongsTo(Store::class);
     }
 
     /** Get the snapshot lines belonging to this order. */

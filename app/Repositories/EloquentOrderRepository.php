@@ -18,6 +18,7 @@ class EloquentOrderRepository implements OrderRepositoryInterface
      */
     public function create(
         int $userId,
+        ?int $storeId,
         OrderStatus $status,
         ?string $paymentMethod,
         string $totalPrice,
@@ -25,6 +26,7 @@ class EloquentOrderRepository implements OrderRepositoryInterface
     ): Order {
         $order = Order::create([
             'user_id' => $userId,
+            'store_id' => $storeId,
             'status' => $status,
             'payment_method' => $paymentMethod,
             'total_price' => $totalPrice,
