@@ -15,6 +15,8 @@ class OrderResource extends JsonResource
         return [
             'id' => $this->id,
             'user_id' => $this->user_id,
+            // Null only for rows created before the Day 15 split.
+            'store_id' => $this->store_id,
             'status' => $this->status->value,
             'payment_method' => $this->payment_method,
             'total_price' => $this->total_price,

@@ -21,8 +21,10 @@ class CheckoutTest extends TestCase
     public function test_customer_can_checkout_a_filled_cart(): void
     {
         $customer = $this->customer();
-        $lamp = $this->visibleProduct(['name' => 'Desk Lamp', 'base_price' => '49.99']);
-        $mug = $this->visibleProduct(['name' => 'Trail Mug', 'base_price' => '10.00']);
+        // One store for both products → the split yields exactly one order.
+        $store = Store::factory()->create(['status' => StoreStatus::APPROVED]);
+        $lamp = $this->productIn($store, ['name' => 'Desk Lamp', 'base_price' => '49.99']);
+        $mug = $this->productIn($store, ['name' => 'Trail Mug', 'base_price' => '10.00']);
         $this->stockFor($lamp, 10);
         $this->stockFor($mug, 5);
 
@@ -39,9 +41,11 @@ class CheckoutTest extends TestCase
 
         $response->assertJsonStructure([
             'data' => [
-                'order' => [
-                    'id', 'user_id', 'status', 'payment_method', 'total_price',
-                    'items', 'created_at', 'updated_at',
+                'orders' => [
+                    [
+                        'id', 'user_id', 'store_id', 'status', 'payment_method', 'total_price',
+                        'items', 'created_at', 'updated_at',
+                    ],
                 ],
             ],
             'message',
@@ -49,16 +53,18 @@ class CheckoutTest extends TestCase
 
         $response
             ->assertJsonPath('message', 'Order placed.')
-            ->assertJsonPath('data.order.user_id', $customer->id)
-            ->assertJsonPath('data.order.status', 'pending')
-            ->assertJsonPath('data.order.payment_method', 'card')
-            ->assertJsonPath('data.order.total_price', '129.98') // 2 × 49.99 + 3 × 10.00
-            ->assertJsonCount(2, 'data.order.items')
-            ->assertJsonPath('data.order.items.0.name', 'Desk Lamp')
-            ->assertJsonPath('data.order.items.0.unit_price', '49.99')
-            ->assertJsonPath('data.order.items.0.quantity', 2);
+            ->assertJsonCount(1, 'data.orders')
+            ->assertJsonPath('data.orders.0.user_id', $customer->id)
+            ->assertJsonPath('data.orders.0.store_id', $store->id)
+            ->assertJsonPath('data.orders.0.status', 'pending')
+            ->assertJsonPath('data.orders.0.payment_method', 'card')
+            ->assertJsonPath('data.orders.0.total_price', '129.98') // 2 × 49.99 + 3 × 10.00
+            ->assertJsonCount(2, 'data.orders.0.items')
+            ->assertJsonPath('data.orders.0.items.0.name', 'Desk Lamp')
+            ->assertJsonPath('data.orders.0.items.0.unit_price', '49.99')
+            ->assertJsonPath('data.orders.0.items.0.quantity', 2);
 
-        $orderId = $response->json('data.order.id');
+        $orderId = $response->json('data.orders.0.id');
 
         $this->assertDatabaseCount('orders', 1);
         $this->assertDatabaseCount('order_items', 2);
@@ -66,6 +72,54 @@ class CheckoutTest extends TestCase
         $this->assertDatabaseCount('cart_items', 0);
         $this->assertDatabaseHas('inventories', ['product_id' => $lamp->id, 'quantity' => 8]);
         $this->assertDatabaseHas('inventories', ['product_id' => $mug->id, 'quantity' => 2]);
+    }
+
+    public function test_a_multi_vendor_cart_splits_into_one_order_per_vendor(): void
+    {
+        $customer = $this->customer();
+        $alpha = Store::factory()->create(['status' => StoreStatus::APPROVED]);
+        $beta = Store::factory()->create(['status' => StoreStatus::APPROVED]);
+        $lamp = $this->productIn($alpha, ['name' => 'Desk Lamp', 'base_price' => '49.99']);
+        $cable = $this->productIn($alpha, ['name' => 'HDMI Cable', 'base_price' => '5.00']);
+        $mug = $this->productIn($beta, ['name' => 'Trail Mug', 'base_price' => '10.00']);
+        $this->stockFor($lamp, 10);
+        $this->stockFor($cable, 10);
+        $this->stockFor($mug, 10);
+
+        foreach ([[$lamp, 2], [$cable, 1], [$mug, 3]] as [$product, $quantity]) {
+            $this->actingAs($customer, 'sanctum')
+                ->postJson('/api/cart/items', ['product_id' => $product->id, 'quantity' => $quantity])
+                ->assertCreated();
+        }
+
+        $response = $this->actingAs($customer, 'sanctum')
+            ->postJson('/api/checkout', ['payment_method' => 'card'])
+            ->assertCreated();
+
+        // Orders follow first-seen store order: alpha's two lines, then beta's.
+        $response
+            ->assertJsonPath('message', 'Orders placed.')
+            ->assertJsonCount(2, 'data.orders')
+            ->assertJsonPath('data.orders.0.store_id', $alpha->id)
+            ->assertJsonPath('data.orders.0.total_price', '104.98') // 2 × 49.99 + 5.00
+            ->assertJsonCount(2, 'data.orders.0.items')
+            ->assertJsonPath('data.orders.1.store_id', $beta->id)
+            ->assertJsonPath('data.orders.1.total_price', '30.00') // 3 × 10.00
+            ->assertJsonCount(1, 'data.orders.1.items')
+            ->assertJsonPath('data.orders.1.items.0.name', 'Trail Mug');
+
+        $this->assertDatabaseCount('orders', 2);
+        $this->assertDatabaseCount('order_items', 3);
+        $this->assertDatabaseCount('cart_items', 0);
+        $this->assertDatabaseHas('inventories', ['product_id' => $lamp->id, 'quantity' => 8]);
+        $this->assertDatabaseHas('inventories', ['product_id' => $cable->id, 'quantity' => 9]);
+        $this->assertDatabaseHas('inventories', ['product_id' => $mug->id, 'quantity' => 7]);
+
+        // Both halves show up in the customer's order history.
+        $this->actingAs($customer, 'sanctum')
+            ->getJson('/api/orders')
+            ->assertOk()
+            ->assertJsonPath('data.orders.meta.total', 2);
     }
 
     public function test_checkout_rejects_an_empty_cart(): void
@@ -105,7 +159,8 @@ class CheckoutTest extends TestCase
             ->assertJsonPath('message', 'Insufficient stock during checkout.')
             ->assertJsonPath('errors.quantity', 'Only 1 units are available for Scarce Ring.');
 
-        // The whole transaction rolled back: no order, stock restored, cart intact.
+        // The whole transaction rolled back: neither vendor's split order was
+        // written, stock is restored, and the cart is intact.
         $this->assertDatabaseCount('orders', 0);
         $this->assertDatabaseCount('order_items', 0);
         $this->assertDatabaseHas('inventories', ['product_id' => $steady->id, 'quantity' => 10]);
@@ -131,7 +186,7 @@ class CheckoutTest extends TestCase
         $this->actingAs($first, 'sanctum')
             ->postJson('/api/checkout')
             ->assertCreated()
-            ->assertJsonPath('data.order.total_price', '40.00');
+            ->assertJsonPath('data.orders.0.total_price', '40.00');
 
         $this->assertDatabaseHas('inventories', ['product_id' => $product->id, 'quantity' => 1]);
 
@@ -163,8 +218,8 @@ class CheckoutTest extends TestCase
             ->assertCreated();
 
         $response
-            ->assertJsonPath('data.order.total_price', '49.99')
-            ->assertJsonPath('data.order.items.0.unit_price', '49.99');
+            ->assertJsonPath('data.orders.0.total_price', '49.99')
+            ->assertJsonPath('data.orders.0.items.0.unit_price', '49.99');
 
         $this->assertDatabaseHas('order_items', [
             'product_id' => $product->id,
@@ -336,6 +391,12 @@ class CheckoutTest extends TestCase
     {
         $store = Store::factory()->create(['status' => StoreStatus::APPROVED]);
 
+        return $this->productIn($store, $attributes);
+    }
+
+    /** Create a product inside an existing store so carts can span vendors. */
+    private function productIn(Store $store, array $attributes = []): Product
+    {
         return Product::factory()->create(['store_id' => $store->id] + $attributes);
     }
 

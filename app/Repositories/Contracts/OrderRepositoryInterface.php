@@ -17,6 +17,7 @@ interface OrderRepositoryInterface
      */
     public function create(
         int $userId,
+        ?int $storeId,
         OrderStatus $status,
         ?string $paymentMethod,
         string $totalPrice,

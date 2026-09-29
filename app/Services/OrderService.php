@@ -13,6 +13,7 @@ use App\Repositories\Contracts\CartRepositoryInterface;
 use App\Repositories\Contracts\InventoryRepositoryInterface;
 use App\Repositories\Contracts\OrderRepositoryInterface;
 use Illuminate\Pagination\LengthAwarePaginator;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 
 class OrderService
@@ -24,18 +25,22 @@ class OrderService
     ) {}
 
     /**
-     * Convert a filled cart into an order inside a single transaction.
+     * Convert a filled cart into per-vendor orders inside a single transaction
+     * (Day 15 multi-vendor checkout): one order per store, each carrying only
+     * that vendor's lines and total.
      *
-     * Every line reserves its stock with an atomic guarded decrement before the
-     * order is written; any failure rolls back the stock moves, the order and
-     * the cart clearing together.
+     * Every line reserves its stock with an atomic guarded decrement before any
+     * order is written; a single failure rolls back the stock moves, all split
+     * orders and the cart clearing together — it is all-or-nothing.
+     *
+     * @return Collection<int, Order> orders grouped by vendor, in first-seen store order
      *
      * @throws EmptyCartException when the cart holds no lines
      * @throws InsufficientStockException when a line outran available stock
      */
-    public function place(Cart $cart, ?string $paymentMethod): Order
+    public function place(Cart $cart, ?string $paymentMethod): Collection
     {
-        return DB::transaction(function () use ($cart, $paymentMethod): Order {
+        return DB::transaction(function () use ($cart, $paymentMethod): Collection {
             $lines = $cart->items()->with('product')->get();
 
             if ($lines->isEmpty()) {
@@ -50,27 +55,35 @@ class OrderService
                 }
             }
 
-            $order = $this->orders->create(
-                userId: $cart->user_id,
-                status: OrderStatus::from((string) config('marketplace.checkout.default_status')),
-                paymentMethod: $paymentMethod,
-                totalPrice: number_format(
-                    (float) $lines->sum(fn (CartItem $line): float => (float) $line->unit_price * $line->quantity),
-                    2,
-                    '.',
-                    '',
-                ),
-                items: $lines->map(fn (CartItem $line): array => [
-                    'product_id' => $line->product_id,
-                    'name' => $line->product->name,
-                    'unit_price' => $line->unit_price,
-                    'quantity' => $line->quantity,
-                ])->all(),
-            );
+            $status = OrderStatus::from((string) config('marketplace.checkout.default_status'));
+
+            $orders = $lines
+                ->groupBy(fn (CartItem $line): int => (int) $line->product->store_id)
+                ->map(fn ($vendorLines, int $storeId): Order => $this->orders->create(
+                    userId: $cart->user_id,
+                    storeId: $storeId,
+                    status: $status,
+                    paymentMethod: $paymentMethod,
+                    totalPrice: number_format(
+                        (float) $vendorLines->sum(
+                            fn (CartItem $line): float => (float) $line->unit_price * $line->quantity,
+                        ),
+                        2,
+                        '.',
+                        '',
+                    ),
+                    items: $vendorLines->map(fn (CartItem $line): array => [
+                        'product_id' => $line->product_id,
+                        'name' => $line->product->name,
+                        'unit_price' => $line->unit_price,
+                        'quantity' => $line->quantity,
+                    ])->all(),
+                ))
+                ->values();
 
             $this->carts->clear($cart);
 
-            return $order;
+            return $orders;
         });
     }
 
