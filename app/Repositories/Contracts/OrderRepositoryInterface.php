@@ -5,6 +5,7 @@ namespace App\Repositories\Contracts;
 use App\Enums\OrderStatus;
 use App\Models\Order;
 use App\Models\OrderItem;
+use Carbon\CarbonInterface;
 use Illuminate\Pagination\LengthAwarePaginator;
 
 interface OrderRepositoryInterface
@@ -12,6 +13,8 @@ interface OrderRepositoryInterface
     /**
      * Persist a new order together with its snapshot lines.
      *
+     * @param  string  $discount  this order's share of the cart-wide discount (Day 16)
+     * @param  string  $tax  this order's share of the cart-wide tax (Day 16)
      * @param  array<int, array<string, mixed>>  $items
      * @return Order with items loaded
      */
@@ -20,6 +23,8 @@ interface OrderRepositoryInterface
         ?int $storeId,
         OrderStatus $status,
         ?string $paymentMethod,
+        string $discount,
+        string $tax,
         string $totalPrice,
         array $items,
     ): Order;
@@ -45,4 +50,7 @@ interface OrderRepositoryInterface
 
     /** Update an order's status. */
     public function updateStatus(Order $order, OrderStatus $status): Order;
+
+    /** Count the orders a customer placed since the given instant (fraud window). */
+    public function countForUserSince(int $userId, CarbonInterface $since): int;
 }

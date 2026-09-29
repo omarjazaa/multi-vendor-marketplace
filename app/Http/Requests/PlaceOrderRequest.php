@@ -16,6 +16,17 @@ class PlaceOrderRequest extends FormRequest
         return true;
     }
 
+    /**
+     * Normalise the coupon code before validation so the checkout chain and
+     * the pricing decorator both look up the stored (uppercase) form.
+     */
+    protected function prepareForValidation(): void
+    {
+        if (is_string($this->input('coupon'))) {
+            $this->merge(['coupon' => strtoupper(trim($this->input('coupon')))]);
+        }
+    }
+
     /** @return array<string, array<int, mixed>> */
     public function rules(): array
     {
@@ -26,6 +37,10 @@ class PlaceOrderRequest extends FormRequest
                 'max:50',
                 Rule::in((array) config('marketplace.checkout.payment_methods')),
             ],
+            // Optional coupon applied at checkout: { "coupon": "SAVE10" }.
+            // Eligibility (expiry, usage, minimum) is decided by the
+            // checkout validation chain, not by shape rules here.
+            'coupon' => ['nullable', 'string', 'max:32'],
         ];
     }
 

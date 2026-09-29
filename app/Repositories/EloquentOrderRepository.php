@@ -6,6 +6,7 @@ use App\Enums\OrderStatus;
 use App\Models\Order;
 use App\Models\OrderItem;
 use App\Repositories\Contracts\OrderRepositoryInterface;
+use Carbon\CarbonInterface;
 use Illuminate\Pagination\LengthAwarePaginator;
 
 class EloquentOrderRepository implements OrderRepositoryInterface
@@ -13,6 +14,8 @@ class EloquentOrderRepository implements OrderRepositoryInterface
     /**
      * Persist a new order together with its snapshot lines.
      *
+     * @param  string  $discount  this order's share of the cart-wide discount (Day 16)
+     * @param  string  $tax  this order's share of the cart-wide tax (Day 16)
      * @param  array<int, array<string, mixed>>  $items
      * @return Order with items loaded
      */
@@ -21,6 +24,8 @@ class EloquentOrderRepository implements OrderRepositoryInterface
         ?int $storeId,
         OrderStatus $status,
         ?string $paymentMethod,
+        string $discount,
+        string $tax,
         string $totalPrice,
         array $items,
     ): Order {
@@ -29,6 +34,8 @@ class EloquentOrderRepository implements OrderRepositoryInterface
             'store_id' => $storeId,
             'status' => $status,
             'payment_method' => $paymentMethod,
+            'discount' => $discount,
+            'tax' => $tax,
             'total_price' => $totalPrice,
         ]);
 
@@ -92,5 +99,13 @@ class EloquentOrderRepository implements OrderRepositoryInterface
         $order->update(['status' => $status]);
 
         return $order;
+    }
+
+    /** Count the orders a customer placed since the given instant (fraud window). */
+    public function countForUserSince(int $userId, CarbonInterface $since): int
+    {
+        return Order::where('user_id', $userId)
+            ->where('created_at', '>=', $since)
+            ->count();
     }
 }

@@ -19,6 +19,10 @@ class OrderResource extends JsonResource
             'store_id' => $this->store_id,
             'status' => $this->status->value,
             'payment_method' => $this->payment_method,
+            // This order's share of the cart-wide discount and tax, allocated
+            // by largest remainder across the vendor split (Day 16).
+            'discount' => $this->discount,
+            'tax' => $this->tax,
             'total_price' => $this->total_price,
             'items' => $this->whenLoaded('items', fn () => OrderItemResource::collection($this->items)),
             'created_at' => $this->created_at?->toIso8601String(),

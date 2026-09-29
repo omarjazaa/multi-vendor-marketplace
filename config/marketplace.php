@@ -82,8 +82,9 @@ return [
     |--------------------------------------------------------------------------
     |
     | Checkout rules live here: the status a fresh order receives, the payment
-    | methods the API accepts, how many cart lines a single order may hold and
-    | the page size used when customers browse their order history.
+    | methods the API accepts, how many cart lines a single order may hold,
+    | the page size used when customers browse their order history and the
+    | fraud heuristics the checkout validation chain enforces.
     |
     */
 
@@ -93,6 +94,23 @@ return [
         'payment_methods' => ['cod', 'card', 'bank_transfer'],
         'max_items_per_order' => 50,
         'orders_per_page' => 15,
+
+        /*
+        | Fraud heuristics applied by the checkout validation chain before a
+        | single write happens. A zero disables its rule; the ceilings are
+        | environment-tunable so ops can adjust them without shipping code.
+        */
+
+        'fraud' => [
+
+            // Reject a cart whose subtotal exceeds this ceiling.
+            'max_order_total' => (float) env('MARKETPLACE_FRAUD_MAX_ORDER_TOTAL', 1000),
+
+            // Reject the (max + 1)-th order a customer places within the window.
+            'max_orders_per_window' => (int) env('MARKETPLACE_FRAUD_MAX_ORDERS_PER_WINDOW', 5),
+            'window_minutes' => (int) env('MARKETPLACE_FRAUD_WINDOW_MINUTES', 60),
+
+        ],
 
     ],
 
