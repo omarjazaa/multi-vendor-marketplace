@@ -101,6 +101,14 @@ class EloquentOrderRepository implements OrderRepositoryInterface
         return $order;
     }
 
+    /** Store the reference a payment strategy issued for this order (Day 17). */
+    public function recordPaymentReference(Order $order, string $reference): Order
+    {
+        $order->update(['payment_reference' => $reference]);
+
+        return $order;
+    }
+
     /** Count the orders a customer placed since the given instant (fraud window). */
     public function countForUserSince(int $userId, CarbonInterface $since): int
     {

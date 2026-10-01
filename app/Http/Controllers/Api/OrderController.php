@@ -6,6 +6,7 @@ use App\Exceptions\EmptyCartException;
 use App\Exceptions\FraudRiskException;
 use App\Exceptions\InsufficientStockException;
 use App\Exceptions\InvalidCouponException;
+use App\Exceptions\UnsupportedPaymentMethodException;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\PlaceOrderRequest;
 use App\Http\Resources\OrderResource;
@@ -33,7 +34,7 @@ class OrderController extends Controller
         $cart = $this->cart->forUser((int) $request->user()->id);
 
         try {
-            $orders = $this->orders->place(
+            $outcome = $this->orders->place(
                 $cart,
                 $request->validated('payment_method'),
                 $request->validated('coupon'),
@@ -59,6 +60,14 @@ class OrderController extends Controller
                 ['fraud' => $exception->getMessage()],
                 422,
             );
+        } catch (UnsupportedPaymentMethodException $exception) {
+            // Reached only if the request rules and the strategy map drift
+            // apart; nothing has been written at this point.
+            return $this->errorResponse(
+                'Unsupported payment method.',
+                ['payment_method' => $exception->getMessage()],
+                422,
+            );
         } catch (InsufficientStockException $exception) {
             return $this->errorResponse(
                 'Insufficient stock during checkout.',
@@ -68,10 +77,15 @@ class OrderController extends Controller
         }
 
         // One order per vendor (Day 15): a single-store cart still returns a
-        // one-element array so clients always read data.orders.
+        // one-element array so clients always read data.orders. The payment
+        // summary (Day 17) rides alongside it, so a decline is reported without
+        // hiding the order that was placed.
         return $this->successResponse(
-            ['orders' => OrderResource::collection($orders)->resolve($request)],
-            $orders->count() > 1 ? 'Orders placed.' : 'Order placed.',
+            [
+                'orders' => OrderResource::collection($outcome->orders)->resolve($request),
+                'payment' => $outcome->paymentPayload(),
+            ],
+            $outcome->orders->count() > 1 ? 'Orders placed.' : 'Order placed.',
             201,
         );
     }

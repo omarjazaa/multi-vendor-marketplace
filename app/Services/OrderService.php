@@ -8,6 +8,7 @@ use App\Exceptions\FraudRiskException;
 use App\Exceptions\InsufficientStockException;
 use App\Exceptions\InvalidCouponException;
 use App\Exceptions\InvalidOrderTransitionException;
+use App\Exceptions\UnsupportedPaymentMethodException;
 use App\Models\Cart;
 use App\Models\CartItem;
 use App\Models\Order;
@@ -15,8 +16,12 @@ use App\Repositories\Contracts\CartRepositoryInterface;
 use App\Repositories\Contracts\InventoryRepositoryInterface;
 use App\Repositories\Contracts\OrderRepositoryInterface;
 use App\Services\Checkout\CheckoutContext;
+use App\Services\Checkout\CheckoutOutcome;
 use App\Services\Checkout\CheckoutValidationPipeline;
 use App\Services\Checkout\ProportionalAllocator;
+use App\Services\Payments\PaymentResult;
+use App\Services\Payments\PaymentStrategyFactory;
+use App\Services\Payments\PaymentStrategyInterface;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
@@ -30,6 +35,8 @@ class OrderService
         private readonly PricingService $pricing,
         private readonly ProportionalAllocator $allocator,
         private readonly CheckoutValidationPipeline $pipeline,
+        private readonly PaymentStrategyFactory $payments,
+        private readonly OrderTransitionService $transitions,
     ) {}
 
     /**
@@ -41,19 +48,31 @@ class OrderService
      *  2. a single transaction reserves stock with the atomic guarded
      *     decrement, prices the cart with the Decorator pipeline, allocates
      *     the cart-wide discount and tax across the vendor split (largest
-     *     remainder) and writes one order per store plus the cart clearing.
+     *     remainder) and writes one order per store plus the cart clearing;
+     *  3. once that transaction has committed, the payment strategy resolved
+     *     by the factory runs once per split order (Day 17).
      *
      * A single failure rolls back the stock moves, all split orders and the
      * cart clearing together — it is all-or-nothing.
      *
-     * @return Collection<int, Order> orders grouped by vendor, in first-seen store order
+     * Payment semantics (deliberately outside the transaction): step 3 runs
+     * after the commit because an order must survive its own declined
+     * payment. A declined attempt leaves the order, its snapshot lines, the
+     * reserved stock and the cleared cart untouched, keeps the order in its
+     * initial status and records no reference; the decline is reported on the
+     * returned outcome for the API to surface. Recovering a declined order is
+     * an operations decision: it is cancelled through the lifecycle map, or
+     * the customer pays it another way.
+     *
+     * @return CheckoutOutcome the per-vendor orders plus their payment results
      *
      * @throws EmptyCartException when the cart holds no lines
      * @throws InsufficientStockException when a line outran available stock
      * @throws InvalidCouponException when the supplied coupon code is rejected
      * @throws FraudRiskException when a fraud heuristic rejects the checkout
+     * @throws UnsupportedPaymentMethodException when the method has no configured strategy
      */
-    public function place(Cart $cart, ?string $paymentMethod, ?string $couponCode = null): Collection
+    public function place(Cart $cart, ?string $paymentMethod, ?string $couponCode = null): CheckoutOutcome
     {
         $lines = $cart->items()->with('product')->get();
 
@@ -64,7 +83,12 @@ class OrderService
         $context = new CheckoutContext($cart, $lines, $couponCode, $paymentMethod);
         $this->pipeline->run($context);
 
-        return DB::transaction(function () use ($context): Collection {
+        // Resolve the strategy before anything is written, so a method without
+        // a configured strategy can never reach the database. The API rejects
+        // unknown methods even earlier, in the request validation.
+        $strategy = blank($paymentMethod) ? null : $this->payments->make($paymentMethod);
+
+        $orders = DB::transaction(function () use ($context): Collection {
             foreach ($context->lines as $line) {
                 if (! $this->inventories->decrementQuantity($line->product, $line->quantity)) {
                     $available = $this->inventories->firstOrCreateForProduct($line->product)->quantity;
@@ -75,6 +99,12 @@ class OrderService
 
             return $this->writeSplitOrders($context);
         });
+
+        return new CheckoutOutcome(
+            $orders,
+            $paymentMethod,
+            $this->executePayments($orders, $strategy),
+        );
     }
 
     /**
@@ -135,6 +165,39 @@ class OrderService
         return $orders;
     }
 
+    /**
+     * Run the resolved strategy once per split order, after the checkout
+     * transaction has committed, and remember each issued reference.
+     *
+     * A multi-vendor cart shares one method across its orders, so every split
+     * order is charged exactly once and gets its own reference. Results are
+     * returned rather than thrown: a decline is a normal outcome here and the
+     * orders are already committed.
+     *
+     * @param  Collection<int, Order>  $orders
+     * @return Collection<int, PaymentResult> keyed by order id
+     */
+    private function executePayments(Collection $orders, ?PaymentStrategyInterface $strategy): Collection
+    {
+        $results = new Collection;
+
+        if ($strategy === null) {
+            return $results;
+        }
+
+        foreach ($orders as $order) {
+            $result = $strategy->pay($order);
+
+            if ($result->successful && $result->reference !== null) {
+                $this->orders->recordPaymentReference($order, $result->reference);
+            }
+
+            $results->put((int) $order->id, $result);
+        }
+
+        return $results;
+    }
+
     /** Paginate the orders placed by a customer. */
     public function ordersFor(int $userId): LengthAwarePaginator
     {
@@ -166,20 +229,16 @@ class OrderService
     /**
      * Move an order to the next status when the configured transition map allows it.
      *
-     * The map lives in config/marketplace.php (marketplace.orders.transitions), so
-     * lifecycle rules are declared once and shared by every actor. Authorization
-     * (who may apply a transition) stays in the controller/policy layer.
+     * The map lives in config/marketplace.php (marketplace.orders.transitions) and
+     * is enforced by OrderTransitionService, the single gate shared with the
+     * payment strategies that settle an order during checkout.
+     * Authorization (who may apply a transition) stays in the controller/policy
+     * layer.
      *
      * @throws InvalidOrderTransitionException when the transition is not allowed
      */
     public function transitionTo(Order $order, OrderStatus $target): Order
     {
-        $allowed = (array) config("marketplace.orders.transitions.{$order->status->value}", []);
-
-        if (! in_array($target->value, $allowed, true)) {
-            throw new InvalidOrderTransitionException($order->status->value, $target->value);
-        }
-
-        return $this->orders->updateStatus($order, $target);
+        return $this->transitions->apply($order, $target);
     }
 }
