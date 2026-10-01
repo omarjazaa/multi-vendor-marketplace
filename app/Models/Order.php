@@ -15,7 +15,7 @@ class Order extends Model
     use HasFactory;
 
     /** @var list<string> */
-    protected $fillable = ['user_id', 'store_id', 'status', 'payment_method', 'discount', 'tax', 'total_price'];
+    protected $fillable = ['user_id', 'store_id', 'status', 'payment_method', 'payment_reference', 'discount', 'tax', 'total_price'];
 
     /** @return array<string, string> */
     protected function casts(): array

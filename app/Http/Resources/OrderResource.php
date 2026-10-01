@@ -19,6 +19,9 @@ class OrderResource extends JsonResource
             'store_id' => $this->store_id,
             'status' => $this->status->value,
             'payment_method' => $this->payment_method,
+            // Reference issued by the payment strategy (Day 17); null when no
+            // method was used or the payment was declined.
+            'payment_reference' => $this->payment_reference,
             // This order's share of the cart-wide discount and tax, allocated
             // by largest remainder across the vendor split (Day 16).
             'discount' => $this->discount,

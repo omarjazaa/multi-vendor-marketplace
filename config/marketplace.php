@@ -1,5 +1,9 @@
 <?php
 
+use App\Services\Payments\Strategies\BankTransferStrategy;
+use App\Services\Payments\Strategies\CardPaymentStrategy;
+use App\Services\Payments\Strategies\CashOnDeliveryStrategy;
+
 return [
 
     /*
@@ -91,6 +95,14 @@ return [
     'checkout' => [
 
         'default_status' => 'pending',
+
+        /*
+        | The methods the API accepts. Every entry must also be registered in
+        | marketplace.payments.methods below — the payment factory throws for
+        | anything missing there — and tests/Feature/PaymentMethodsTest.php
+        | fails if the two lists ever drift apart.
+        */
+
         'payment_methods' => ['cod', 'card', 'bank_transfer'],
         'max_items_per_order' => 50,
         'orders_per_page' => 15,
@@ -110,6 +122,43 @@ return [
             'max_orders_per_window' => (int) env('MARKETPLACE_FRAUD_MAX_ORDERS_PER_WINDOW', 5),
             'window_minutes' => (int) env('MARKETPLACE_FRAUD_WINDOW_MINUTES', 60),
 
+        ],
+
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
+    | Payments
+    |--------------------------------------------------------------------------
+    |
+    | The Strategy + Factory pair behind checkout: each accepted method maps
+    | to the strategy that settles it and PaymentStrategyFactory resolves the
+    | right one at runtime. Registering a method means adding an entry here —
+    | the factory itself never names a strategy class.
+    |
+    */
+
+    'payments' => [
+
+        'methods' => [
+            'cod' => CashOnDeliveryStrategy::class,
+            'card' => CardPaymentStrategy::class,
+            'bank_transfer' => BankTransferStrategy::class,
+        ],
+
+        /*
+        | Simulated card gateway: no real provider is wired up, so the outcome
+        | is driven by MARKETPLACE_CARD_PAYMENT_SUCCEEDS. Off by default, which
+        | means card checkouts are declined and the order stays unpaid — the
+        | pre-Day-17 lifecycle is preserved until an operator opts in.
+        */
+
+        'card' => [
+            'simulate_success' => (bool) env('MARKETPLACE_CARD_PAYMENT_SUCCEEDS', false),
+            'decline_message' => env(
+                'MARKETPLACE_CARD_DECLINE_MESSAGE',
+                'Your card was declined. Try another payment method or choose cash on delivery.',
+            ),
         ],
 
     ],
