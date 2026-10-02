@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Enums\OrderStatus;
+use App\Events\OrderPlaced;
 use App\Exceptions\EmptyCartException;
 use App\Exceptions\FraudRiskException;
 use App\Exceptions\InsufficientStockException;
@@ -50,10 +51,14 @@ class OrderService
      *     the cart-wide discount and tax across the vendor split (largest
      *     remainder) and writes one order per store plus the cart clearing;
      *  3. once that transaction has committed, the payment strategy resolved
-     *     by the factory runs once per split order (Day 17).
+     *     by the factory runs once per split order (Day 17);
+     *  4. the outcome is broadcast as OrderPlaced so channel strategies can
+     *     deliver the customer confirmation and vendor alerts (Day 18).
      *
      * A single failure rolls back the stock moves, all split orders and the
-     * cart clearing together — it is all-or-nothing.
+     * cart clearing together — it is all-or-nothing. Steps 3 and 4 run after
+     * that commit, so neither a declined payment nor a failed notification
+     * channel can ever roll the order back.
      *
      * Payment semantics (deliberately outside the transaction): step 3 runs
      * after the commit because an order must survive its own declined
@@ -100,11 +105,15 @@ class OrderService
             return $this->writeSplitOrders($context);
         });
 
-        return new CheckoutOutcome(
+        $outcome = new CheckoutOutcome(
             $orders,
             $paymentMethod,
             $this->executePayments($orders, $strategy),
         );
+
+        OrderPlaced::dispatch($orders, $context->cart->user, $outcome);
+
+        return $outcome;
     }
 
     /**

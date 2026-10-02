@@ -1,5 +1,7 @@
 <?php
 
+use App\Notifications\Channels\DatabaseNotificationChannel;
+use App\Notifications\Channels\MailNotificationChannel;
 use App\Services\Payments\Strategies\BankTransferStrategy;
 use App\Services\Payments\Strategies\CardPaymentStrategy;
 use App\Services\Payments\Strategies\CashOnDeliveryStrategy;
@@ -207,6 +209,36 @@ return [
 
         'site_discount_type' => env('MARKETPLACE_SITE_DISCOUNT_TYPE', 'percentage'),
         'site_discount_value' => (float) env('MARKETPLACE_SITE_DISCOUNT_VALUE', 0),
+
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
+    | Order Notifications
+    |--------------------------------------------------------------------------
+    |
+    | The channel Strategy + Factory behind order alerts mirrors the payment
+    | pair: each key maps to the channel that delivers it and
+    | NotificationChannelFactory resolves the right one at runtime.
+    | Registering a channel means adding an entry here — the factory itself
+    | never names a channel class.
+    |
+    */
+
+    'notifications' => [
+
+        'channels' => [
+            'database' => DatabaseNotificationChannel::class,
+            'mail' => MailNotificationChannel::class,
+        ],
+
+        // Which configured channel carries the customer confirmation and
+        // which carries the per-vendor new-order alerts.
+        'customer_channel' => env('MARKETPLACE_CUSTOMER_CHANNEL', 'database'),
+        'vendor_channel' => env('MARKETPLACE_VENDOR_CHANNEL', 'database'),
+
+        // Queue the order Mailable instead of sending it inline.
+        'queue_mail' => (bool) env('MARKETPLACE_QUEUE_MAIL', true),
 
     ],
 
