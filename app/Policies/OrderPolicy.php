@@ -19,7 +19,8 @@ class OrderPolicy
      *
      * Admins may move any order; vendors only orders that contain at least one
      * line from their own stores; customers who placed the order may not —
-     * fulfilment is staff work, tracked through the configured transition map.
+     * fulfilment is staff work, and WHICH transitions are legal is governed
+     * separately by the order states (app/States), never here.
      */
     public function update(User $user, Order $order): bool
     {

@@ -9,4 +9,5 @@ enum OrderStatus: string
     case CANCELLED = 'cancelled';
     case SHIPPED = 'shipped';
     case DELIVERED = 'delivered';
+    case REFUNDED = 'refunded';
 }

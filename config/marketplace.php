@@ -5,6 +5,12 @@ use App\Notifications\Channels\MailNotificationChannel;
 use App\Services\Payments\Strategies\BankTransferStrategy;
 use App\Services\Payments\Strategies\CardPaymentStrategy;
 use App\Services\Payments\Strategies\CashOnDeliveryStrategy;
+use App\States\CancelledState;
+use App\States\DeliveredState;
+use App\States\PaidState;
+use App\States\PendingState;
+use App\States\RefundedState;
+use App\States\ShippedState;
 
 return [
 
@@ -170,8 +176,12 @@ return [
     | Order Fulfilment & Management
     |--------------------------------------------------------------------------
     |
-    | Order lifecycle transitions allowed in the system, plus pagination
-    | settings for vendor and admin order listings.
+    | The order lifecycle (State Pattern): the states registry maps each
+    | OrderStatus to its OrderState implementation, the transition matrix
+    | declares every legal edge — both consumed by OrderTransitionService —
+    | and filter_statuses is what ?status= accepts on the vendor/admin
+    | listings. A sync unit test keeps the three aligned. Pagination
+    | settings for those listings live here too.
     |
     */
 
@@ -180,14 +190,24 @@ return [
         'vendor_per_page' => 15,
         'admin_per_page' => 15,
 
-        'filter_statuses' => ['pending', 'paid', 'cancelled', 'shipped', 'delivered'],
+        'filter_statuses' => ['pending', 'paid', 'cancelled', 'shipped', 'delivered', 'refunded'],
+
+        'states' => [
+            'pending' => PendingState::class,
+            'paid' => PaidState::class,
+            'shipped' => ShippedState::class,
+            'delivered' => DeliveredState::class,
+            'refunded' => RefundedState::class,
+            'cancelled' => CancelledState::class,
+        ],
 
         'transitions' => [
             'pending' => ['paid', 'cancelled'],
-            'paid' => ['shipped', 'cancelled'],
+            'paid' => ['shipped', 'cancelled', 'refunded'],
             'shipped' => ['delivered'],
+            'delivered' => ['refunded'],
+            'refunded' => [],
             'cancelled' => [],
-            'delivered' => [],
         ],
 
     ],
