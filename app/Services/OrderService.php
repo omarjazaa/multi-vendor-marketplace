@@ -236,13 +236,14 @@ class OrderService
     }
 
     /**
-     * Move an order to the next status when the configured transition map allows it.
+     * Move an order to the next status when its current state allows the target.
      *
-     * The map lives in config/marketplace.php (marketplace.orders.transitions) and
-     * is enforced by OrderTransitionService, the single gate shared with the
-     * payment strategies that settle an order during checkout.
-     * Authorization (who may apply a transition) stays in the controller/policy
-     * layer.
+     * The runtime gate is the OrderState resolved for the order's current
+     * status (app/States), whose allowed edges come from the lifecycle matrix
+     * in config/marketplace.php (marketplace.orders.transitions) via
+     * OrderTransitionService — the single gate shared with the payment
+     * strategies that settle an order during checkout. Authorization (who may
+     * apply a transition) stays in the controller/policy layer.
      *
      * @throws InvalidOrderTransitionException when the transition is not allowed
      */
