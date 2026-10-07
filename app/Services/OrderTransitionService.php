@@ -3,6 +3,8 @@
 namespace App\Services;
 
 use App\Enums\OrderStatus;
+use App\Events\OrderPaid;
+use App\Events\OrderShipped;
 use App\Exceptions\InvalidOrderTransitionException;
 use App\Models\Order;
 use App\Repositories\Contracts\OrderRepositoryInterface;
@@ -22,6 +24,12 @@ use App\States\OrderStateFactory;
  * strategies that settle an order during checkout — which keeps the card
  * strategy from having to depend on OrderService itself. Authorization
  * (who may apply a transition) stays in the controller/policy layer.
+ *
+ * Being the one gate also makes it the Day 20 emission point: a legal move
+ * into paid or shipped announces itself with OrderPaid / OrderShipped
+ * exactly once, whoever drove the transition — observers never care which
+ * actor did it, and a blocked transition throws before reaching the
+ * dispatch.
  */
 class OrderTransitionService
 {
@@ -31,7 +39,10 @@ class OrderTransitionService
     ) {}
 
     /**
-     * Move an order to the target status when its current state allows it.
+     * Move an order to the target status when its current state allows it,
+     * then announce the Day 20 lifecycle event for moves the observers care
+     * about (paid, shipped) — after the write, so listeners always read the
+     * new status from the payload.
      *
      * @throws InvalidOrderTransitionException when the transition is not allowed
      */
@@ -43,6 +54,14 @@ class OrderTransitionService
             throw new InvalidOrderTransitionException($order->status->value, $target->value);
         }
 
-        return $this->orders->updateStatus($order, $target);
+        $updated = $this->orders->updateStatus($order, $target);
+
+        match ($target) {
+            OrderStatus::PAID => OrderPaid::dispatch($updated),
+            OrderStatus::SHIPPED => OrderShipped::dispatch($updated),
+            default => null,
+        };
+
+        return $updated;
     }
 }

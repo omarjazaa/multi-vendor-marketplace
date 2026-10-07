@@ -12,10 +12,73 @@ use App\Services\Checkout\CheckoutOutcome;
 use Illuminate\Support\Collection;
 use Throwable;
 
-/** Delivers order notifications after checkout commits; failures are reported, never thrown. */
+/**
+ * Delivers order notifications: checkout confirmations since Day 18,
+ * payment and shipment updates since Day 20; failures are reported,
+ * never thrown.
+ */
 final class OrderNotificationService
 {
     public function __construct(private readonly NotificationChannelFactory $channels) {}
+
+    /** Tell the customer their payment landed (Day 20 OrderPaid observer). */
+    public function notifyPaymentReceived(Order $order): ?ChannelResult
+    {
+        $customer = $this->resolveCustomer($order);
+
+        if ($customer === null) {
+            return null;
+        }
+
+        return $this->deliver(
+            $customer,
+            (string) config('marketplace.notifications.customer_channel', 'database'),
+            NotificationPayload::make(
+                'customer_payment_received',
+                sprintf('Payment received for order #%d', (int) $order->id),
+                sprintf('We received your payment for order #%d.', (int) $order->id),
+                [
+                    'order_id' => (int) $order->id,
+                    'status' => $order->status->value,
+                    'payment_method' => $order->payment_method,
+                    // Null on the instant-settle path: checkout records the
+                    // reference a beat after the gate emits OrderPaid — the
+                    // Day 18 confirmation carries it either way.
+                    'payment_reference' => $order->payment_reference,
+                    'total_price' => (string) $order->total_price,
+                ],
+            ),
+        );
+    }
+
+    /** Tell the customer their order shipped (Day 20 OrderShipped observer). */
+    public function notifyShipped(Order $order): ?ChannelResult
+    {
+        $customer = $this->resolveCustomer($order);
+
+        if ($customer === null) {
+            return null;
+        }
+
+        return $this->deliver(
+            $customer,
+            (string) config('marketplace.notifications.customer_channel', 'database'),
+            NotificationPayload::make(
+                'customer_order_shipped',
+                sprintf('Order #%d has shipped', (int) $order->id),
+                sprintf('Your order #%d is on its way.', (int) $order->id),
+                [
+                    'order_id' => (int) $order->id,
+                    'status' => $order->status->value,
+                    'items' => $order->items->map(fn ($item): array => [
+                        'product_id' => (int) $item->product_id,
+                        'name' => (string) $item->name,
+                        'quantity' => (int) $item->quantity,
+                    ])->values()->all(),
+                ],
+            ),
+        );
+    }
 
     /** @param  Collection<int, Order>  $orders */
     public function notifyCheckout(User $customer, Collection $orders, CheckoutOutcome $outcome): array
@@ -98,6 +161,18 @@ final class OrderNotificationService
         }
 
         return $owner instanceof User ? $owner : null;
+    }
+
+    private function resolveCustomer(Order $order): ?User
+    {
+        try {
+            $order->loadMissing('user');
+            $customer = $order->user;
+        } catch (Throwable) {
+            return null;
+        }
+
+        return $customer instanceof User ? $customer : null;
     }
 
     /** @param  Collection<int, Order>  $orders */

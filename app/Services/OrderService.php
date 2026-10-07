@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Enums\OrderStatus;
 use App\Events\OrderPlaced;
+use App\Events\OrderPlacing;
 use App\Exceptions\EmptyCartException;
 use App\Exceptions\FraudRiskException;
 use App\Exceptions\InsufficientStockException;
@@ -14,7 +15,6 @@ use App\Models\Cart;
 use App\Models\CartItem;
 use App\Models\Order;
 use App\Repositories\Contracts\CartRepositoryInterface;
-use App\Repositories\Contracts\InventoryRepositoryInterface;
 use App\Repositories\Contracts\OrderRepositoryInterface;
 use App\Services\Checkout\CheckoutContext;
 use App\Services\Checkout\CheckoutOutcome;
@@ -32,7 +32,6 @@ class OrderService
     public function __construct(
         private readonly OrderRepositoryInterface $orders,
         private readonly CartRepositoryInterface $carts,
-        private readonly InventoryRepositoryInterface $inventories,
         private readonly PricingService $pricing,
         private readonly ProportionalAllocator $allocator,
         private readonly CheckoutValidationPipeline $pipeline,
@@ -46,12 +45,16 @@ class OrderService
      *
      *  1. the checkout validation chain — stock, coupon, fraud — reads live
      *     state and rejects before anything is written;
-     *  2. a single transaction reserves stock with the atomic guarded
-     *     decrement, prices the cart with the Decorator pipeline, allocates
-     *     the cart-wide discount and tax across the vendor split (largest
-     *     remainder) and writes one order per store plus the cart clearing;
+     *  2. a single transaction dispatches OrderPlacing, whose synchronous
+     *     ReduceInventory listener reserves stock with the atomic guarded
+     *     decrement (a lost race rolls the whole order back), then prices
+     *     the cart with the Decorator pipeline, allocates the cart-wide
+     *     discount and tax across the vendor split (largest remainder) and
+     *     writes one order per store plus the cart clearing;
      *  3. once that transaction has committed, the payment strategy resolved
-     *     by the factory runs once per split order (Day 17);
+     *     by the factory runs once per split order (Day 17); an approved
+     *     charge settles through the lifecycle gate, which emits OrderPaid
+     *     for its observers (Day 20);
      *  4. the outcome is broadcast as OrderPlaced so channel strategies can
      *     deliver the customer confirmation and vendor alerts (Day 18).
      *
@@ -94,13 +97,11 @@ class OrderService
         $strategy = blank($paymentMethod) ? null : $this->payments->make($paymentMethod);
 
         $orders = DB::transaction(function () use ($context): Collection {
-            foreach ($context->lines as $line) {
-                if (! $this->inventories->decrementQuantity($line->product, $line->quantity)) {
-                    $available = $this->inventories->firstOrCreateForProduct($line->product)->quantity;
-
-                    throw new InsufficientStockException($available, $line->product->name);
-                }
-            }
+            // The stock reservation is the synchronous OrderPlacing listener:
+            // dispatched inside the transaction so the guarded decrement and
+            // the order rows commit or roll back together (Day 20 observer —
+            // see ReduceInventory for why it must never be queued).
+            OrderPlacing::dispatch($context->lines);
 
             return $this->writeSplitOrders($context);
         });
