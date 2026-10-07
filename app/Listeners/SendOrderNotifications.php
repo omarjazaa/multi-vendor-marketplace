@@ -4,19 +4,22 @@ namespace App\Listeners;
 
 use App\Events\OrderPlaced;
 use App\Services\OrderNotificationService;
+use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Support\Facades\Log;
 use Throwable;
 
 /**
  * Delivers the OrderPlaced notifications after checkout has committed.
  *
- * Runs synchronously in the request lifecycle but NEVER inside the order
- * transaction: a failed channel reports itself through the notification
- * service and can never roll back a placed order. A buggy listener is
- * equally contained — any unexpected throw is logged and swallowed so the
- * 201 checkout response stands.
+ * Queued since Day 20 (PRD "queued listeners"): the 201 response is never
+ * held up by delivery — under the sync test driver the behaviour is
+ * identical, in production a worker drains it after the response. It runs
+ * NEVER inside the order transaction: a failed channel reports itself
+ * through the notification service and can never roll back a placed
+ * order. A buggy listener is equally contained — any unexpected throw is
+ * logged and swallowed so the 201 checkout response stands.
  */
-class SendOrderNotifications
+class SendOrderNotifications implements ShouldQueue
 {
     public function __construct(private readonly OrderNotificationService $notifications) {}
 
