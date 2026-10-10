@@ -15,6 +15,7 @@ use App\Http\Controllers\Api\VendorInventoryController;
 use App\Http\Controllers\Api\VendorOrderController;
 use App\Http\Controllers\Api\VendorProductController;
 use App\Http\Controllers\Api\VendorProductImageController;
+use App\Http\Controllers\Api\VendorShipmentController;
 use Illuminate\Support\Facades\Route;
 
 // Public catalog — browsable by guests, no authentication required.
@@ -44,6 +45,7 @@ Route::middleware('auth:sanctum')->group(function (): void {
     Route::prefix('vendor/orders')->middleware('role:vendor')->group(function (): void {
         Route::get('', [VendorOrderController::class, 'index']);
         Route::patch('{order}/status', [VendorOrderController::class, 'updateStatus']);
+        Route::post('{order}/items/{item}/ship', [VendorShipmentController::class, 'ship']);
     });
     Route::prefix('admin/orders')->middleware('role:admin')->group(function (): void {
         Route::get('', [AdminOrderController::class, 'index']);

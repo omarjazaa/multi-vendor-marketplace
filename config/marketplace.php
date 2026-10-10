@@ -185,6 +185,10 @@ return [
     |
     */
 
+    /*--------------------------------------------------------------------------
+    | Mock Shipment (Day 21) — simulated carrier integration (PRD §1.3).
+    |--------------------------------------------------------------------------*/
+
     'orders' => [
 
         'vendor_per_page' => 15,
@@ -259,6 +263,21 @@ return [
 
         // Queue the order Mailable instead of sending it inline.
         'queue_mail' => (bool) env('MARKETPLACE_QUEUE_MAIL', true),
+
+    ],
+
+    /*--------------------------------------------------------------------------
+    | Mock Shipment (Day 21) — simulated carrier integration (PRD §1.3).
+    |--------------------------------------------------------------------------*/
+
+    'shipments' => [
+
+        /*
+        | Tracking prefix: deterministic and config-driven so the mock provider
+        | (and any future carrier) is swapped without touching the service.
+        | Format: "<prefix>-<order>-<item>" — e.g. TRK-3-7.
+        */
+        'tracking_prefix' => env('MOCK_TRACKING_PREFIX', 'TRK'),
 
     ],
 
