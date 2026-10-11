@@ -8,6 +8,7 @@ use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\CartController;
 use App\Http\Controllers\Api\OrderController;
 use App\Http\Controllers\Api\ProductCatalogController;
+use App\Http\Controllers\Api\ProductReviewController;
 use App\Http\Controllers\Api\RoleAccessController;
 use App\Http\Controllers\Api\StoreController;
 use App\Http\Controllers\Api\VendorCouponController;
@@ -21,6 +22,7 @@ use Illuminate\Support\Facades\Route;
 // Public catalog — browsable by guests, no authentication required.
 Route::get('products', [ProductCatalogController::class, 'index']);
 Route::get('products/{product}', [ProductCatalogController::class, 'show'])->whereNumber('product');
+Route::get('products/{product}/reviews', [ProductReviewController::class, 'index'])->whereNumber('product');
 
 Route::prefix('auth')->group(function (): void {
     Route::post('register', [AuthController::class, 'register']);
@@ -60,6 +62,7 @@ Route::middleware('auth:sanctum')->group(function (): void {
         // Checkout is customer only; order history stays reachable for admins
         // so support staff can inspect any receipt through the policy.
         Route::post('checkout', [OrderController::class, 'checkout']);
+        Route::post('products/{product}/reviews', [ProductReviewController::class, 'store'])->whereNumber('product');
     });
     Route::get('orders', [OrderController::class, 'index']);
     Route::get('orders/{order}', [OrderController::class, 'show']);

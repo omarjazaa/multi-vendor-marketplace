@@ -66,4 +66,12 @@ class User extends Authenticatable
     {
         return $this->hasOne(VendorProfile::class);
     }
+
+    /**
+     * Get the reviews authored by this user.
+     */
+    public function reviews(): HasMany
+    {
+        return $this->hasMany(Review::class);
+    }
 }
