@@ -17,12 +17,18 @@ class Product extends Model
     /** @var list<string> */
     protected $fillable = [
         'store_id', 'category_id', 'name', 'slug', 'description', 'base_price', 'is_active',
+        'average_rating', 'reviews_count',
     ];
 
     /** @return array<string, string> */
     protected function casts(): array
     {
-        return ['base_price' => 'decimal:2', 'is_active' => 'boolean'];
+        return [
+            'base_price' => 'decimal:2',
+            'is_active' => 'boolean',
+            'average_rating' => 'decimal:2',
+            'reviews_count' => 'integer',
+        ];
     }
 
     /** Get the owning store. */
@@ -47,5 +53,11 @@ class Product extends Model
     public function inventory(): HasOne
     {
         return $this->hasOne(Inventory::class);
+    }
+
+    /** Get all customer reviews for this product. */
+    public function reviews(): HasMany
+    {
+        return $this->hasMany(Review::class)->latest();
     }
 }

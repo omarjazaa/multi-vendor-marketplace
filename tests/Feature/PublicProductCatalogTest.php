@@ -264,6 +264,7 @@ class PublicProductCatalogTest extends TestCase
 
         $this->assertEqualsCanonicalizing([
             'id', 'store_id', 'category_id', 'name', 'slug', 'description', 'base_price',
+            'average_rating', 'reviews_count',
             'is_active', 'images', 'inventory', 'store', 'category', 'created_at', 'updated_at',
         ], array_keys($response->json('data.product')));
     }

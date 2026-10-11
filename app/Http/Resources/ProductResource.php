@@ -20,6 +20,8 @@ class ProductResource extends JsonResource
             'slug' => $this->slug,
             'description' => $this->description,
             'base_price' => $this->base_price,
+            'average_rating' => (float) $this->average_rating,
+            'reviews_count' => (int) $this->reviews_count,
             'is_active' => $this->is_active,
             'images' => $this->whenLoaded(
                 'images',
