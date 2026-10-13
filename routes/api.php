@@ -11,6 +11,7 @@ use App\Http\Controllers\Api\ProductCatalogController;
 use App\Http\Controllers\Api\ProductReviewController;
 use App\Http\Controllers\Api\RoleAccessController;
 use App\Http\Controllers\Api\StoreController;
+use App\Http\Controllers\Api\VendorAnalyticsController;
 use App\Http\Controllers\Api\VendorCouponController;
 use App\Http\Controllers\Api\VendorInventoryController;
 use App\Http\Controllers\Api\VendorOrderController;
@@ -48,6 +49,12 @@ Route::middleware('auth:sanctum')->group(function (): void {
         Route::get('', [VendorOrderController::class, 'index']);
         Route::patch('{order}/status', [VendorOrderController::class, 'updateStatus']);
         Route::post('{order}/items/{item}/ship', [VendorShipmentController::class, 'ship']);
+    });
+    Route::prefix('vendor/analytics')->middleware('role:vendor')->group(function (): void {
+        Route::get('dashboard', [VendorAnalyticsController::class, 'dashboard']);
+        Route::get('summary', [VendorAnalyticsController::class, 'summary']);
+        Route::get('best-sellers', [VendorAnalyticsController::class, 'bestSellers']);
+        Route::get('revenue', [VendorAnalyticsController::class, 'revenue']);
     });
     Route::prefix('admin/orders')->middleware('role:admin')->group(function (): void {
         Route::get('', [AdminOrderController::class, 'index']);
