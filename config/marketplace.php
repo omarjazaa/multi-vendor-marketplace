@@ -281,4 +281,31 @@ return [
 
     ],
 
+    /*
+    |--------------------------------------------------------------------------
+    | Caching Layer (Day 24)
+    |--------------------------------------------------------------------------
+    |
+    | Configuration for caching the hierarchical category tree and public product
+    | catalog listings. Uses Redis tags where supported with automatic version-based
+    | cache invalidation fallback for untagged cache stores.
+    |
+    */
+
+    'cache' => [
+
+        'enabled' => (bool) env('MARKETPLACE_CACHE_ENABLED', true),
+
+        // Time to live in seconds
+        'categories_ttl' => (int) env('MARKETPLACE_CACHE_CATEGORIES_TTL', 3600),
+        'catalog_ttl' => (int) env('MARKETPLACE_CACHE_CATALOG_TTL', 1800),
+
+        // Keys and tags
+        'category_tree_key' => 'categories:tree',
+        'categories_tag' => 'categories',
+        'catalog_tag' => 'catalog',
+        'catalog_version_key' => 'catalog:version',
+
+    ],
+
 ];

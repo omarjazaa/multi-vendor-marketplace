@@ -6,6 +6,7 @@ use App\Http\Controllers\Api\AdminOrderController;
 use App\Http\Controllers\Api\AdminStoreController;
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\CartController;
+use App\Http\Controllers\Api\CategoryController;
 use App\Http\Controllers\Api\OrderController;
 use App\Http\Controllers\Api\ProductCatalogController;
 use App\Http\Controllers\Api\ProductReviewController;
@@ -20,7 +21,8 @@ use App\Http\Controllers\Api\VendorProductImageController;
 use App\Http\Controllers\Api\VendorShipmentController;
 use Illuminate\Support\Facades\Route;
 
-// Public catalog — browsable by guests, no authentication required.
+// Public catalog & categories — browsable by guests, no authentication required.
+Route::get('categories', [CategoryController::class, 'index']);
 Route::get('products', [ProductCatalogController::class, 'index']);
 Route::get('products/{product}', [ProductCatalogController::class, 'show'])->whereNumber('product');
 Route::get('products/{product}/reviews', [ProductReviewController::class, 'index'])->whereNumber('product');
