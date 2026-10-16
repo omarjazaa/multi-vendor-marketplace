@@ -3,7 +3,7 @@ FROM php:8.3-cli
 WORKDIR /var/www/html
 
 RUN apt-get update \
-    && apt-get install -y --no-install-recommends git unzip libzip-dev \
+    && apt-get install -y --no-install-recommends git unzip libzip-dev supervisor \
     && docker-php-ext-install bcmath pcntl pdo_mysql zip \
     && pecl install redis \
     && docker-php-ext-enable redis \

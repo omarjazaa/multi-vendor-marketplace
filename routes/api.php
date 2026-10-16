@@ -18,6 +18,7 @@ use App\Http\Controllers\Api\VendorInventoryController;
 use App\Http\Controllers\Api\VendorOrderController;
 use App\Http\Controllers\Api\VendorProductController;
 use App\Http\Controllers\Api\VendorProductImageController;
+use App\Http\Controllers\Api\VendorReportController;
 use App\Http\Controllers\Api\VendorShipmentController;
 use Illuminate\Support\Facades\Route;
 
@@ -57,6 +58,10 @@ Route::middleware('auth:sanctum')->group(function (): void {
         Route::get('summary', [VendorAnalyticsController::class, 'summary']);
         Route::get('best-sellers', [VendorAnalyticsController::class, 'bestSellers']);
         Route::get('revenue', [VendorAnalyticsController::class, 'revenue']);
+        Route::get('reports', [VendorReportController::class, 'index']);
+        Route::post('reports', [VendorReportController::class, 'store']);
+        Route::get('reports/{report}', [VendorReportController::class, 'show'])->whereNumber('report');
+        Route::get('reports/{report}/download', [VendorReportController::class, 'download'])->whereNumber('report');
     });
     Route::prefix('admin/orders')->middleware('role:admin')->group(function (): void {
         Route::get('', [AdminOrderController::class, 'index']);
