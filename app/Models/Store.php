@@ -52,4 +52,10 @@ class Store extends Model
     {
         return $this->hasMany(Product::class);
     }
+
+    /** Get analytics reports requested by this store. */
+    public function reports(): HasMany
+    {
+        return $this->hasMany(VendorReport::class);
+    }
 }

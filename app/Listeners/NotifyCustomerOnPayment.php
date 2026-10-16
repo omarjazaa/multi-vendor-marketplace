@@ -20,6 +20,8 @@ use Throwable;
  */
 class NotifyCustomerOnPayment implements ShouldQueue
 {
+    public string $queue = 'notifications';
+
     public function __construct(private readonly OrderNotificationService $notifications) {}
 
     public function handle(OrderPaid $event): void

@@ -4,14 +4,18 @@ namespace App\Notifications;
 
 use App\Models\Store;
 use Illuminate\Bus\Queueable;
+use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Notifications\Notification;
 
-class WelcomeVendorNotification extends Notification
+class WelcomeVendorNotification extends Notification implements ShouldQueue
 {
     use Queueable;
 
-    public function __construct(private readonly Store $store) {}
+    public function __construct(private readonly Store $store)
+    {
+        $this->queue = 'notifications';
+    }
 
     /**
      * Send the welcome notification through email.
