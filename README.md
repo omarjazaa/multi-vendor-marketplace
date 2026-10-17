@@ -1,68 +1,144 @@
+# Multi-Vendor Marketplace
+
 [![CI](https://github.com/omarjazaa/multi-vendor-marketplace/actions/workflows/ci.yml/badge.svg)](https://github.com/omarjazaa/multi-vendor-marketplace/actions/workflows/ci.yml)
+![PHP Version](https://img.shields.io/badge/PHP-8.2%2B-777bb4?logo=php)
+![Laravel Framework](https://img.shields.io/badge/Laravel-11.x-FF2D20?logo=laravel)
+![Tests](https://img.shields.io/badge/Tests-269%20Passing-brightgreen?logo=checkmarx)
+![License](https://img.shields.io/badge/License-MIT-blue)
 
-<p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
+A scalable, multi-vendor e-commerce platform built with **Laravel 11**, designed around **Domain-Driven Design**, **SOLID principles**, and classic **GoF Design Patterns**.
 
-<p align="center">
-<a href="https://github.com/laravel/framework/actions"><img src="https://github.com/laravel/framework/workflows/tests/badge.svg" alt="Build Status"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/dt/laravel/framework" alt="Total Downloads"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/v/laravel/framework" alt="Latest Stable Version"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
-</p>
+---
 
-## About Laravel
+## 🏗️ Architecture & Design Patterns
 
-Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
+| Pattern | Module / Implementation | Purpose |
+|---|---|---|
+| **Decorator Pattern** | Pricing Engine (`PriceComponentInterface`, `BasePrice`, `DiscountDecorator`, `CouponDecorator`, `TaxDecorator`) | Transparent and modular price calculations for cart items and checkout totals. |
+| **Chain of Responsibility** | Checkout Validation (`StockAvailabilityCheck` → `CouponValidityCheck` → `FraudRiskCheck`) | Pluggable, sequentially evaluated validation guards that can halt checkout with descriptive errors. |
+| **Strategy + Factory** | Payment Processing (`PaymentGatewayInterface`, `PaymentGatewayFactory`, `StripeGateway`, `PayPalGateway`, `CashOnDeliveryGateway`) | Decoupled payment gateway integration with runtime driver resolution. |
+| **State Pattern** | Order Lifecycle (`OrderState`, `PendingState`, `PaidState`, `ShippedState`, `DeliveredState`, `CancelledState`, `RefundedState`) | Strictly enforced, guarded state transitions across order fulfillment. |
+| **Observer Pattern** | Order Automation (`OrderPlaced`, `OrderPaid`, `OrderShipped` with dedicated listeners) | Dispatches side-effects (inventory updates, notifications) decoupled from domain models. |
+| **CQRS Split** | Vendor Analytics (`VendorDashboardQuery`, `VendorBestSellersQuery`, `VendorRevenueOverTimeQuery`) | Dedicated read-only query abstractions separated from write services. |
+| **Cache Aside & Invalidation** | Catalog & Categories (`CategoryController`, `ProductCatalogController`) | High-performance Redis caching layer with tag/key invalidation on catalog mutations. |
+| **Queue Worker & Jobs** | Asynchronous Background Processing (`GenerateVendorReportJob`, queued notifications) | Dedicated queues (`reports`, `notifications`, `default`) managed via Supervisor. |
 
-- [Simple, fast routing engine](https://laravel.com/docs/routing).
-- [Powerful dependency injection container](https://laravel.com/docs/container).
-- Multiple back-ends for [session](https://laravel.com/docs/session) and [cache](https://laravel.com/docs/cache) storage.
-- Expressive, intuitive [database ORM](https://laravel.com/docs/eloquent).
-- Database agnostic [schema migrations](https://laravel.com/docs/migrations).
-- [Robust background job processing](https://laravel.com/docs/queues).
-- [Real-time event broadcasting](https://laravel.com/docs/broadcasting).
+---
 
-Laravel is accessible, powerful, and provides tools required for large, robust applications.
+## 📅 30-Day Development Roadmap
 
-## Learning Laravel
+### Week 1 — Core Foundation & Vendor Onboarding
+- [x] **Day 1**: CI/CD pipeline setup (GitHub Actions, PHPUnit, Laravel Pint).
+- [x] **Day 2**: Authentication & Sanctum tokens (Customer, Vendor, Admin roles).
+- [x] **Day 3**: Role-based access control & authorization gates/policies.
+- [x] **Day 4**: Vendor store applications & onboarding workflow.
+- [x] **Day 5**: Admin vendor approval/rejection review workflow.
+- [x] **Day 6**: Nested categories & product skeleton.
+- [x] **Day 7**: Vendor product CRUD with ownership protection policies.
+- [x] **Day 8**: Product image uploads & API resource responses.
 
-Laravel has the most extensive and thorough [documentation](https://laravel.com/docs) and video tutorial library of all modern web application frameworks, making it a breeze to get started with the framework.
+### Week 2 — Catalog, Cart & Pricing Engine
+- [x] **Day 9**: Inventory management & low-stock alerts.
+- [x] **Day 10**: Public product catalog filtering & specification query builder.
+- [x] **Day 11**: Customer shopping cart with live stock validation.
+- [x] **Day 12**: Discount coupons (fixed & percentage, expiry, usage limits).
+- [x] **Day 13**: **Decorator Pattern**: Dynamic pricing engine calculation.
+- [x] **Day 14**: Cart summary endpoint wiring & pricing edge-case tests.
 
-You may also try the [Laravel Bootcamp](https://bootcamp.laravel.com), where you will be guided through building a modern Laravel application from scratch.
+### Week 3 — Orders, Payments & Automation
+- [x] **Day 15**: Multi-vendor checkout & automatic vendor order splitting.
+- [x] **Day 16**: **Chain of Responsibility**: Checkout validation pipeline.
+- [x] **Day 17**: **Strategy + Factory**: Polymorphic payment gateways.
+- [x] **Day 18**: Order notifications with multi-channel delivery strategies.
+- [x] **Day 19**: **State Pattern**: Guarded order lifecycle state machine.
+- [x] **Day 20**: **Observer Pattern**: Event-driven order automation.
+- [x] **Day 21**: Mock shipment module with deterministic tracking numbers.
 
-If you don't feel like reading, [Laracasts](https://laracasts.com) can help. Laracasts contains thousands of video tutorials on a range of topics including Laravel, modern PHP, unit testing, and JavaScript. Boost your skills by digging into our comprehensive video library.
+### Week 4 — Scale, Quality & Performance
+- [x] **Day 22**: Product reviews & ratings cached on delivered orders.
+- [x] **Day 23**: Vendor analytics dashboard with lightweight **CQRS** query split.
+- [x] **Day 24**: Redis caching layer for catalog listings with invalidation hooks.
+- [x] **Day 25**: **Background Jobs & Queues**: Asynchronous vendor reports, queued notifications, and Docker Supervisor worker configuration.
+- [ ] **Day 26**: API Versioning (`/api/v1/...`), consistent resources, and rate limiting.
+- [ ] **Day 27**: Admin dispute/refund handling with polymorphic gateway refunds.
+- [ ] **Day 28**: Comprehensive testing sprint & coverage audit.
+- [ ] **Day 29**: Multi-stage Docker production deployment.
+- [ ] **Day 30**: Full architectural documentation (`ARCHITECTURE.md`) & Postman collection.
 
-## Laravel Sponsors
+---
 
-We would like to extend our thanks to the following sponsors for funding Laravel development. If you are interested in becoming a sponsor, please visit the [Laravel Partners program](https://partners.laravel.com).
+## ⚡ Day 25 Highlights: Background Jobs & Queues
 
-### Premium Partners
+1. **Vendor Analytics Reports Generation (`GenerateVendorReportJob`)**:
+   - Long-running report generation is offloaded to the `reports` queue.
+   - Generates JSON analytics artifacts stored in private storage.
+   - Includes retry logic (`$tries = 3`) and graceful timeout management.
+   - Endpoints:
+     - `POST /api/vendor/analytics/reports`: Queue new report generation (`202 Accepted`).
+     - `GET /api/vendor/analytics/reports`: List reports with `status` and `type` filters.
+     - `GET /api/vendor/analytics/reports/{id}`: Check report status.
+     - `GET /api/vendor/analytics/reports/{id}/download`: Stream completed report.
 
-- **[Vehikl](https://vehikl.com/)**
-- **[Tighten Co.](https://tighten.co)**
-- **[WebReinvent](https://webreinvent.com/)**
-- **[Kirschbaum Development Group](https://kirschbaumdevelopment.com)**
-- **[64 Robots](https://64robots.com)**
-- **[Curotec](https://www.curotec.com/services/technologies/laravel/)**
-- **[Cyber-Duck](https://cyber-duck.co.uk)**
-- **[DevSquad](https://devsquad.com/hire-laravel-developers)**
-- **[Jump24](https://jump24.co.uk)**
-- **[Redberry](https://redberry.international/laravel/)**
-- **[Active Logic](https://activelogic.com)**
-- **[byte5](https://byte5.de)**
-- **[OP.GG](https://op.gg)**
+2. **Queued Notifications**:
+   - `SendVendorWelcomeNotification` & `WelcomeVendorNotification` queued on `notifications`.
+   - `SendOrderNotifications`, `NotifyCustomerOnPayment`, and `NotifyCustomerOnShipment` run asynchronously.
 
-## Contributing
+3. **Supervisor & Worker Orchestration**:
+   - Supervisor config in `docker/supervisor/supervisord.conf` orchestrating workers on `default,notifications,reports`.
 
-Thank you for considering contributing to the Laravel framework! The contribution guide can be found in the [Laravel documentation](https://laravel.com/docs/contributions).
+---
 
-## Code of Conduct
+## 🚀 Getting Started
 
-In order to ensure that the Laravel community is welcoming to all, please review and abide by the [Code of Conduct](https://laravel.com/docs/contributions#code-of-conduct).
+### Prerequisites
+- PHP 8.2 or higher
+- Composer
+- SQLite / MySQL / PostgreSQL
+- Redis (optional, recommended for cache and queues)
 
-## Security Vulnerabilities
+### Local Setup
+```bash
+# 1. Clone repository
+git clone https://github.com/omarjazaa/multi-vendor-marketplace.git
+cd multi-vendor-marketplace
 
-If you discover a security vulnerability within Laravel, please send an e-mail to Taylor Otwell via [taylor@laravel.com](mailto:taylor@laravel.com). All security vulnerabilities will be promptly addressed.
+# 2. Install dependencies
+composer install
 
-## License
+# 3. Environment configuration
+cp .env.example .env
+php artisan key:generate
 
-The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+# 4. Run migrations
+php artisan migrate
+
+# 5. Run queue worker
+php artisan queue:work --queue=default,notifications,reports
+
+# 6. Start development server
+php artisan serve
+```
+
+### Running with Docker & Supervisor
+```bash
+docker compose up -d --build
+```
+
+---
+
+## 🧪 Testing & Code Quality
+
+Run tests across the entire suite:
+```bash
+php artisan test
+```
+
+Run code style checks:
+```bash
+./vendor/bin/pint --test
+```
+
+---
+
+## 📄 License
+This project is open-sourced software licensed under the [MIT license](LICENSE).
