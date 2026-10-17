@@ -109,6 +109,30 @@ class VendorReportGenerationTest extends TestCase
             ->assertJsonCount(3, 'data.reports.data');
     }
 
+    public function test_vendor_can_filter_reports_by_status_and_type(): void
+    {
+        [$vendor, $store] = $this->vendorWithApprovedStore();
+
+        VendorReport::factory()->create([
+            'store_id' => $store->id,
+            'type' => ReportType::SALES_SUMMARY,
+            'status' => ReportStatus::COMPLETED,
+        ]);
+        VendorReport::factory()->create([
+            'store_id' => $store->id,
+            'type' => ReportType::BEST_SELLERS,
+            'status' => ReportStatus::PENDING,
+        ]);
+
+        $response = $this->actingAs($vendor, 'sanctum')
+            ->getJson('/api/vendor/analytics/reports?status=completed&type=sales_summary');
+
+        $response->assertOk()
+            ->assertJsonCount(1, 'data.reports.data')
+            ->assertJsonPath('data.reports.data.0.type', ReportType::SALES_SUMMARY->value)
+            ->assertJsonPath('data.reports.data.0.status', ReportStatus::COMPLETED->value);
+    }
+
     public function test_vendor_can_view_a_specific_report(): void
     {
         [$vendor, $store] = $this->vendorWithApprovedStore();

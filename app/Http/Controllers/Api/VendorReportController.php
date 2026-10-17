@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api;
 
 use App\Enums\ReportStatus;
+use App\Enums\ReportType;
 use App\Enums\StoreStatus;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\VendorReportRequest;
@@ -35,9 +36,17 @@ class VendorReportController extends Controller
             return $this->errorResponse('You must have an approved store to view analytics reports.', [], 403);
         }
 
-        $reports = $store->reports()
-            ->latest('id')
-            ->paginate((int) $request->query('per_page', 15));
+        $query = $store->reports()->latest('id');
+
+        if ($request->filled('status') && $status = ReportStatus::tryFrom((string) $request->query('status'))) {
+            $query->where('status', $status);
+        }
+
+        if ($request->filled('type') && $type = ReportType::tryFrom((string) $request->query('type'))) {
+            $query->where('type', $type);
+        }
+
+        $reports = $query->paginate((int) $request->query('per_page', 15));
 
         return $this->successResponse([
             'reports' => $reports,
