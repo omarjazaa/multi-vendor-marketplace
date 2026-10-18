@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Exceptions\StoreApplicationAlreadyReviewed;
 use App\Http\Controllers\Controller;
+use App\Http\Resources\StoreResource;
 use App\Http\Traits\ApiResponse;
 use App\Models\Store;
 use App\Services\VendorApprovalService;
@@ -26,7 +27,7 @@ class AdminStoreController extends Controller
             return $this->errorResponse($exception->getMessage(), status: 409);
         }
 
-        return $this->successResponse(['store' => $store], 'Store application approved.');
+        return $this->successResponse(['store' => StoreResource::make($store)], 'Store application approved.');
     }
 
     /**
@@ -40,6 +41,6 @@ class AdminStoreController extends Controller
             return $this->errorResponse($exception->getMessage(), status: 409);
         }
 
-        return $this->successResponse(['store' => $store], 'Store application rejected.');
+        return $this->successResponse(['store' => StoreResource::make($store)], 'Store application rejected.');
     }
 }

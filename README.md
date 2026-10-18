@@ -3,7 +3,7 @@
 [![CI](https://github.com/omarjazaa/multi-vendor-marketplace/actions/workflows/ci.yml/badge.svg)](https://github.com/omarjazaa/multi-vendor-marketplace/actions/workflows/ci.yml)
 ![PHP Version](https://img.shields.io/badge/PHP-8.2%2B-777bb4?logo=php)
 ![Laravel Framework](https://img.shields.io/badge/Laravel-11.x-FF2D20?logo=laravel)
-![Tests](https://img.shields.io/badge/Tests-269%20Passing-brightgreen?logo=checkmarx)
+![Tests](https://img.shields.io/badge/Tests-285%20Passing-brightgreen?logo=checkmarx)
 ![License](https://img.shields.io/badge/License-MIT-blue)
 
 A scalable, multi-vendor e-commerce platform built with **Laravel 11**, designed around **Domain-Driven Design**, **SOLID principles**, and classic **GoF Design Patterns**.
@@ -22,6 +22,7 @@ A scalable, multi-vendor e-commerce platform built with **Laravel 11**, designed
 | **CQRS Split** | Vendor Analytics (`VendorDashboardQuery`, `VendorBestSellersQuery`, `VendorRevenueOverTimeQuery`) | Dedicated read-only query abstractions separated from write services. |
 | **Cache Aside & Invalidation** | Catalog & Categories (`CategoryController`, `ProductCatalogController`) | High-performance Redis caching layer with tag/key invalidation on catalog mutations. |
 | **Queue Worker & Jobs** | Asynchronous Background Processing (`GenerateVendorReportJob`, queued notifications) | Dedicated queues (`reports`, `notifications`, `default`) managed via Supervisor. |
+| **Pipeline & Gateway** | Versioning & Rate Limiting (`ApiVersioningMiddleware`, `RateLimiter`, API Resources) | Standardized `/api/v1` scoping, correlation IDs (`X-Request-Id`), and fine-grained endpoint throttling. |
 
 ---
 
@@ -59,7 +60,7 @@ A scalable, multi-vendor e-commerce platform built with **Laravel 11**, designed
 - [x] **Day 23**: Vendor analytics dashboard with lightweight **CQRS** query split.
 - [x] **Day 24**: Redis caching layer for catalog listings with invalidation hooks.
 - [x] **Day 25**: **Background Jobs & Queues**: Asynchronous vendor reports, queued notifications, and Docker Supervisor worker configuration.
-- [ ] **Day 26**: API Versioning (`/api/v1/...`), consistent resources, and rate limiting.
+- [x] **Day 26**: **API Versioning (`/api/v1/...`)**, consistent resources (`UserResource`, `StoreResource`, `CategoryResource`, `VendorReportResource`), and rate limiting.
 - [ ] **Day 27**: Admin dispute/refund handling with polymorphic gateway refunds.
 - [ ] **Day 28**: Comprehensive testing sprint & coverage audit.
 - [ ] **Day 29**: Multi-stage Docker production deployment.
@@ -67,7 +68,24 @@ A scalable, multi-vendor e-commerce platform built with **Laravel 11**, designed
 
 ---
 
-## ⚡ Day 25 Highlights: Background Jobs & Queues
+## ⚡ Day 26 Highlights: API Versioning, Consistent Resources & Rate Limiting
+
+1. **Versioned API Gateway (`/api/v1/...`)**:
+   - Primary endpoints cleanly scoped under `routes/api/v1.php` and prefix `/api/v1/...`.
+   - Full backward compatibility maintained for legacy clients with unversioned root `/api/...` routes.
+   - Global `ApiVersioningMiddleware` enforcing version headers (`X-API-Version: v1`), client version negotiation via vendor Accept header (`application/vnd.marketplace.v1+json`), and distributed tracing with `X-Request-Id` UUIDs.
+
+2. **Consistent API Resources**:
+   - `UserResource`: Standardizes user profiles across registration and login responses.
+   - `StoreResource`: Encapsulates vendor store application, approval, and rejection payloads.
+   - `CategoryResource`: Formats hierarchical category trees and nested children recursively.
+   - `VendorReportResource`: Unifies asynchronous report generation and status tracking envelopes.
+
+3. **Granular Rate Limiting (Throttle Middleware)**:
+   - `auth` limiter: 10 requests per minute by email/IP to protect authentication routes against brute-force attacks.
+   - `checkout` limiter: 10 requests per minute per user/IP to prevent checkout duplicate submission spam.
+   - `reports` limiter: 5 requests per minute per vendor to guard intensive analytics jobs against resource exhaustion.
+   - Standard HTTP 429 Too Many Requests response with informative JSON payload and `Retry-After` header.
 
 1. **Vendor Analytics Reports Generation (`GenerateVendorReportJob`)**:
    - Long-running report generation is offloaded to the `reports` queue.

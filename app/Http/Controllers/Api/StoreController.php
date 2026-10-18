@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Exceptions\StoreApplicationAlreadyExists;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\ApplyForStoreRequest;
+use App\Http\Resources\StoreResource;
 use App\Http\Traits\ApiResponse;
 use App\Models\User;
 use App\Services\VendorStoreService;
@@ -30,6 +31,6 @@ class StoreController extends Controller
             return $this->errorResponse($exception->getMessage(), status: 409);
         }
 
-        return $this->successResponse(['store' => $store], 'Store application submitted.', 201);
+        return $this->successResponse(['store' => StoreResource::make($store)], 'Store application submitted.', 201);
     }
 }
