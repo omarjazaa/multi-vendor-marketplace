@@ -1,97 +1,20 @@
 <?php
 
-use App\Http\Controllers\Api\AdminCategoryController;
-use App\Http\Controllers\Api\AdminCouponController;
-use App\Http\Controllers\Api\AdminOrderController;
-use App\Http\Controllers\Api\AdminStoreController;
-use App\Http\Controllers\Api\AuthController;
-use App\Http\Controllers\Api\CartController;
-use App\Http\Controllers\Api\CategoryController;
-use App\Http\Controllers\Api\OrderController;
-use App\Http\Controllers\Api\ProductCatalogController;
-use App\Http\Controllers\Api\ProductReviewController;
-use App\Http\Controllers\Api\RoleAccessController;
-use App\Http\Controllers\Api\StoreController;
-use App\Http\Controllers\Api\VendorAnalyticsController;
-use App\Http\Controllers\Api\VendorCouponController;
-use App\Http\Controllers\Api\VendorInventoryController;
-use App\Http\Controllers\Api\VendorOrderController;
-use App\Http\Controllers\Api\VendorProductController;
-use App\Http\Controllers\Api\VendorProductImageController;
-use App\Http\Controllers\Api\VendorReportController;
-use App\Http\Controllers\Api\VendorShipmentController;
 use Illuminate\Support\Facades\Route;
 
-// Public catalog & categories — browsable by guests, no authentication required.
-Route::get('categories', [CategoryController::class, 'index']);
-Route::get('products', [ProductCatalogController::class, 'index']);
-Route::get('products/{product}', [ProductCatalogController::class, 'show'])->whereNumber('product');
-Route::get('products/{product}/reviews', [ProductReviewController::class, 'index'])->whereNumber('product');
+/*
+|--------------------------------------------------------------------------
+| API Routes — Multi-Vendor Marketplace (Day 26)
+|--------------------------------------------------------------------------
+|
+| Version 1 of the API is mounted under `/api/v1/...` (primary entrypoint)
+| and simultaneously exposed at `/api/...` for full backward compatibility
+| with legacy clients and existing test suites.
+|
+*/
 
-Route::prefix('auth')->group(function (): void {
-    Route::post('register', [AuthController::class, 'register']);
-    Route::post('login', [AuthController::class, 'login']);
-    Route::post('logout', [AuthController::class, 'logout'])->middleware('auth:sanctum');
-});
+// Versioned API v1 (Primary entrypoint)
+Route::prefix('v1')->name('v1.')->group(base_path('routes/api/v1.php'));
 
-Route::middleware('auth:sanctum')->group(function (): void {
-    Route::apiResource('admin/categories', AdminCategoryController::class)
-        ->except(['show'])
-        ->middleware('role:admin');
-    Route::post('admin/stores/{store}/approve', [AdminStoreController::class, 'approve'])
-        ->middleware('role:admin');
-    Route::post('admin/stores/{store}/reject', [AdminStoreController::class, 'reject'])
-        ->middleware('role:admin');
-    Route::post('admin/coupons', [AdminCouponController::class, 'store'])
-        ->middleware('role:admin');
-    Route::post('vendor/store', [StoreController::class, 'apply'])
-        ->middleware('role:vendor');
-    Route::post('vendor/coupons', [VendorCouponController::class, 'store'])
-        ->middleware('role:vendor');
-    Route::prefix('vendor/orders')->middleware('role:vendor')->group(function (): void {
-        Route::get('', [VendorOrderController::class, 'index']);
-        Route::patch('{order}/status', [VendorOrderController::class, 'updateStatus']);
-        Route::post('{order}/items/{item}/ship', [VendorShipmentController::class, 'ship']);
-    });
-    Route::prefix('vendor/analytics')->middleware('role:vendor')->group(function (): void {
-        Route::get('dashboard', [VendorAnalyticsController::class, 'dashboard']);
-        Route::get('summary', [VendorAnalyticsController::class, 'summary']);
-        Route::get('best-sellers', [VendorAnalyticsController::class, 'bestSellers']);
-        Route::get('revenue', [VendorAnalyticsController::class, 'revenue']);
-        Route::get('reports', [VendorReportController::class, 'index']);
-        Route::post('reports', [VendorReportController::class, 'store']);
-        Route::get('reports/{report}', [VendorReportController::class, 'show'])->whereNumber('report');
-        Route::get('reports/{report}/download', [VendorReportController::class, 'download'])->whereNumber('report');
-    });
-    Route::prefix('admin/orders')->middleware('role:admin')->group(function (): void {
-        Route::get('', [AdminOrderController::class, 'index']);
-        Route::patch('{order}/status', [AdminOrderController::class, 'updateStatus']);
-    });
-    Route::middleware('role:customer')->group(function (): void {
-        Route::get('cart', [CartController::class, 'show']);
-        Route::delete('cart', [CartController::class, 'clear']);
-        Route::post('cart/items', [CartController::class, 'store']);
-        Route::put('cart/items/{item}', [CartController::class, 'update']);
-        Route::delete('cart/items/{item}', [CartController::class, 'destroy']);
-        // Checkout is customer only; order history stays reachable for admins
-        // so support staff can inspect any receipt through the policy.
-        Route::post('checkout', [OrderController::class, 'checkout']);
-        Route::post('products/{product}/reviews', [ProductReviewController::class, 'store'])->whereNumber('product');
-    });
-    Route::get('orders', [OrderController::class, 'index']);
-    Route::get('orders/{order}', [OrderController::class, 'show']);
-    Route::apiResource('vendor/products', VendorProductController::class)
-        ->only(['index', 'store', 'update', 'destroy'])
-        ->middleware('role:vendor');
-    Route::prefix('vendor/products/{product}')->middleware('role:vendor')->group(function (): void {
-        Route::get('images', [VendorProductImageController::class, 'index']);
-        Route::post('images', [VendorProductImageController::class, 'store']);
-        Route::delete('images/{image}', [VendorProductImageController::class, 'destroy']);
-        Route::get('inventory', [VendorInventoryController::class, 'show']);
-        Route::put('inventory', [VendorInventoryController::class, 'update']);
-    });
-    Route::get('vendor/access-check', [RoleAccessController::class, 'vendor'])
-        ->middleware('role:vendor');
-    Route::get('admin/access-check', [RoleAccessController::class, 'admin'])
-        ->middleware('role:admin');
-});
+// Backward compatibility alias: legacy unversioned routes map to v1
+Route::group([], base_path('routes/api/v1.php'));

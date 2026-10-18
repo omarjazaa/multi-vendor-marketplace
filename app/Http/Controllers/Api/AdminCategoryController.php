@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\StoreCategoryRequest;
 use App\Http\Requests\UpdateCategoryRequest;
+use App\Http\Resources\CategoryResource;
 use App\Http\Traits\ApiResponse;
 use App\Models\Category;
 use App\Services\CategoryService;
@@ -18,13 +19,13 @@ class AdminCategoryController extends Controller
 
     public function index(): JsonResponse
     {
-        return $this->successResponse(['categories' => $this->categories->all()]);
+        return $this->successResponse(['categories' => CategoryResource::collection($this->categories->all())]);
     }
 
     public function store(StoreCategoryRequest $request): JsonResponse
     {
         return $this->successResponse(
-            ['category' => $this->categories->create($request->validated())],
+            ['category' => CategoryResource::make($this->categories->create($request->validated()))],
             'Category created.',
             201,
         );
@@ -33,7 +34,7 @@ class AdminCategoryController extends Controller
     public function update(UpdateCategoryRequest $request, Category $category): JsonResponse
     {
         return $this->successResponse([
-            'category' => $this->categories->update($category, $request->validated()),
+            'category' => CategoryResource::make($this->categories->update($category, $request->validated())),
         ], 'Category updated.');
     }
 

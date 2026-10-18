@@ -7,6 +7,7 @@ use App\Enums\ReportType;
 use App\Enums\StoreStatus;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\VendorReportRequest;
+use App\Http\Resources\VendorReportResource;
 use App\Http\Traits\ApiResponse;
 use App\Jobs\GenerateVendorReportJob;
 use App\Models\Store;
@@ -47,6 +48,7 @@ class VendorReportController extends Controller
         }
 
         $reports = $query->paginate((int) $request->query('per_page', 15));
+        $reports->through(fn (VendorReport $report) => (new VendorReportResource($report))->resolve($request));
 
         return $this->successResponse([
             'reports' => $reports,
@@ -73,7 +75,7 @@ class VendorReportController extends Controller
         GenerateVendorReportJob::dispatch($report);
 
         return $this->successResponse([
-            'report' => $report,
+            'report' => VendorReportResource::make($report),
         ], 'Report generation dispatched successfully.', 202);
     }
 
@@ -88,7 +90,7 @@ class VendorReportController extends Controller
         }
 
         return $this->successResponse([
-            'report' => $report,
+            'report' => VendorReportResource::make($report),
         ]);
     }
 

@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\LoginRequest;
 use App\Http\Requests\LogoutRequest;
 use App\Http\Requests\RegisterRequest;
+use App\Http\Resources\UserResource;
 use App\Http\Traits\ApiResponse;
 use App\Models\User;
 use App\Services\AuthService;
@@ -22,8 +23,13 @@ class AuthController extends Controller
      */
     public function register(RegisterRequest $request): JsonResponse
     {
+        $payload = $this->auth->register($request->validated());
+
         return $this->successResponse(
-            $this->auth->register($request->validated()),
+            [
+                'user' => UserResource::make($payload['user']),
+                'token' => $payload['token'],
+            ],
             'Registered successfully.',
             201,
         );
@@ -34,8 +40,13 @@ class AuthController extends Controller
      */
     public function login(LoginRequest $request): JsonResponse
     {
+        $payload = $this->auth->login($request->string('email')->toString(), $request->string('password')->toString());
+
         return $this->successResponse(
-            $this->auth->login($request->string('email')->toString(), $request->string('password')->toString()),
+            [
+                'user' => UserResource::make($payload['user']),
+                'token' => $payload['token'],
+            ],
             'Logged in successfully.',
         );
     }

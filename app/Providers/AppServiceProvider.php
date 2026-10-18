@@ -42,9 +42,13 @@ use App\Repositories\EloquentProductImageRepository;
 use App\Repositories\EloquentStoreRepository;
 use App\Repositories\EloquentUserRepository;
 use App\Services\CatalogCacheService;
+use Illuminate\Cache\RateLimiting\Limit;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Gate;
+use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\ServiceProvider;
+use Illuminate\Support\Str;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -85,5 +89,57 @@ class AppServiceProvider extends ServiceProvider
         ProductImage::observe(ProductImageObserver::class);
         Review::observe(ReviewObserver::class);
         Store::observe(StoreObserver::class);
+
+        $this->configureRateLimiting();
+    }
+
+    /**
+     * Configure rate limiters for the marketplace API (Day 26).
+     */
+    protected function configureRateLimiting(): void
+    {
+        RateLimiter::for('auth', function (Request $request): Limit {
+            $email = (string) $request->input('email');
+            $key = $email !== '' ? Str::transliterate(Str::lower($email).'|'.$request->ip()) : (string) $request->ip();
+
+            return Limit::perMinute(10)->by($key)->response(function (Request $request, array $headers) {
+                return response()->json([
+                    'message' => 'Too many authentication attempts. Please try again later.',
+                    'errors' => [
+                        'rate_limit' => ['Too many authentication attempts. Please try again later.'],
+                    ],
+                ], 429, $headers);
+            });
+        });
+
+        RateLimiter::for('checkout', function (Request $request): Limit {
+            $key = (string) ($request->user()?->id ?? $request->ip());
+
+            return Limit::perMinute(10)->by($key)->response(function (Request $request, array $headers) {
+                return response()->json([
+                    'message' => 'Too many checkout attempts. Please try again later.',
+                    'errors' => [
+                        'rate_limit' => ['Too many checkout attempts. Please wait before retrying.'],
+                    ],
+                ], 429, $headers);
+            });
+        });
+
+        RateLimiter::for('reports', function (Request $request): Limit {
+            $key = (string) ($request->user()?->id ?? $request->ip());
+
+            return Limit::perMinute(5)->by($key)->response(function (Request $request, array $headers) {
+                return response()->json([
+                    'message' => 'Too many report generation requests. Please wait a moment.',
+                    'errors' => [
+                        'rate_limit' => ['Too many report generation requests. Please wait a moment.'],
+                    ],
+                ], 429, $headers);
+            });
+        });
+
+        RateLimiter::for('api', function (Request $request): Limit {
+            return Limit::perMinute(60)->by((string) ($request->user()?->id ?? $request->ip()));
+        });
     }
 }
