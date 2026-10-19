@@ -4,12 +4,15 @@ namespace App\Http\Controllers\Api;
 
 use App\Enums\OrderStatus;
 use App\Exceptions\InvalidOrderTransitionException;
+use App\Exceptions\RefundProcessingException;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\FilterOrdersRequest;
+use App\Http\Requests\RefundOrderRequest;
 use App\Http\Requests\UpdateOrderStatusRequest;
 use App\Http\Resources\OrderResource;
 use App\Http\Traits\ApiResponse;
 use App\Models\Order;
+use App\Services\DisputeRefundService;
 use App\Services\OrderService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Pagination\LengthAwarePaginator;
@@ -53,6 +56,48 @@ class AdminOrderController extends Controller
         return $this->successResponse(
             ['order' => OrderResource::make($order->load('items'))],
             'Order status updated.',
+        );
+    }
+
+    /** Refund an order through its polymorphic payment gateway (role:admin, Day 27). */
+    public function refund(
+        RefundOrderRequest $request,
+        Order $order,
+        DisputeRefundService $disputeRefundService,
+    ): JsonResponse {
+        Gate::authorize('update', $order);
+
+        try {
+            $refundedOrder = $disputeRefundService->refundOrder(
+                order: $order,
+                reason: $request->validated('reason'),
+                force: (bool) $request->validated('force', false),
+                admin: $request->user(),
+            );
+        } catch (InvalidOrderTransitionException $exception) {
+            return $this->errorResponse(
+                'Order status transition not allowed.',
+                ['status' => "An order cannot move from {$exception->fromStatus} to {$exception->toStatus}."],
+                409,
+            );
+        } catch (RefundProcessingException $exception) {
+            return $this->errorResponse(
+                'Payment gateway refund failed.',
+                ['gateway' => $exception->getMessage()],
+                422,
+            );
+        }
+
+        return $this->successResponse(
+            [
+                'order' => OrderResource::make($refundedOrder->load('items')),
+                'refund' => [
+                    'successful' => true,
+                    'reference' => $refundedOrder->refund_reference,
+                    'reason' => $refundedOrder->refund_reason,
+                ],
+            ],
+            'Order refunded successfully.',
         );
     }
 

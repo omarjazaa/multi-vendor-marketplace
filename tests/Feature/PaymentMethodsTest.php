@@ -15,6 +15,7 @@ use App\Services\OrderService;
 use App\Services\Payments\PaymentResult;
 use App\Services\Payments\PaymentStrategyFactory;
 use App\Services\Payments\PaymentStrategyInterface;
+use App\Services\Payments\RefundResult;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -315,5 +316,10 @@ class RecordingPaymentStrategy implements PaymentStrategyInterface
         self::$chargedOrderIds[] = (int) $order->id;
 
         return PaymentResult::successful(sprintf('REC-%06d', $order->id), 'recorded');
+    }
+
+    public function refund(Order $order, ?string $reason = null): RefundResult
+    {
+        return RefundResult::successful(sprintf('REF-REC-%06d', $order->id), 'refund recorded');
     }
 }

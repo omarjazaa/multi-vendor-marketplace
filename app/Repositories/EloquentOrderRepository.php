@@ -109,6 +109,17 @@ class EloquentOrderRepository implements OrderRepositoryInterface
         return $order;
     }
 
+    /** Store the refund reference and reason issued by the polymorphic gateway (Day 27). */
+    public function recordRefund(Order $order, string $reference, ?string $reason = null): Order
+    {
+        $order->update([
+            'refund_reference' => $reference,
+            'refund_reason' => $reason,
+        ]);
+
+        return $order;
+    }
+
     /** Count the orders a customer placed since the given instant (fraud window). */
     public function countForUserSince(int $userId, CarbonInterface $since): int
     {
