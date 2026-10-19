@@ -54,6 +54,9 @@ interface OrderRepositoryInterface
     /** Store the reference a payment strategy issued for this order (Day 17). */
     public function recordPaymentReference(Order $order, string $reference): Order;
 
+    /** Store the refund reference and reason issued by the polymorphic gateway (Day 27). */
+    public function recordRefund(Order $order, string $reference, ?string $reason = null): Order;
+
     /** Count the orders a customer placed since the given instant (fraud window). */
     public function countForUserSince(int $userId, CarbonInterface $since): int;
 }

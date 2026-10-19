@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Enums\OrderStatus;
 use App\Events\OrderPaid;
+use App\Events\OrderRefunded;
 use App\Events\OrderShipped;
 use App\Exceptions\InvalidOrderTransitionException;
 use App\Models\Order;
@@ -25,11 +26,9 @@ use App\States\OrderStateFactory;
  * strategy from having to depend on OrderService itself. Authorization
  * (who may apply a transition) stays in the controller/policy layer.
  *
- * Being the one gate also makes it the Day 20 emission point: a legal move
- * into paid or shipped announces itself with OrderPaid / OrderShipped
- * exactly once, whoever drove the transition — observers never care which
- * actor did it, and a blocked transition throws before reaching the
- * dispatch.
+ * Being the one gate also makes it the Day 20/27 emission point: a legal move
+ * into paid, shipped, or refunded announces itself with OrderPaid / OrderShipped /
+ * OrderRefunded exactly once, whoever drove the transition.
  */
 class OrderTransitionService
 {
@@ -40,9 +39,8 @@ class OrderTransitionService
 
     /**
      * Move an order to the target status when its current state allows it,
-     * then announce the Day 20 lifecycle event for moves the observers care
-     * about (paid, shipped) — after the write, so listeners always read the
-     * new status from the payload.
+     * then announce the lifecycle event for moves the observers care
+     * about (paid, shipped, refunded).
      *
      * @throws InvalidOrderTransitionException when the transition is not allowed
      */
@@ -59,6 +57,34 @@ class OrderTransitionService
         match ($target) {
             OrderStatus::PAID => OrderPaid::dispatch($updated),
             OrderStatus::SHIPPED => OrderShipped::dispatch($updated),
+            OrderStatus::REFUNDED => OrderRefunded::dispatch($updated),
+            default => null,
+        };
+
+        return $updated;
+    }
+
+    /**
+     * Force a state transition (Day 27: admin dispute resolution override).
+     *
+     * Bypasses the state machine's ordinary edge matrix for authorized administrative
+     * interventions (e.g., forcing a RefundedState transition on a shipped order when
+     * carrier lost the package), while still guarding against redundant identical transitions.
+     *
+     * @throws InvalidOrderTransitionException when order is already in target status
+     */
+    public function forceApply(Order $order, OrderStatus $target): Order
+    {
+        if ($order->status === $target) {
+            throw new InvalidOrderTransitionException($order->status->value, $target->value);
+        }
+
+        $updated = $this->orders->updateStatus($order, $target);
+
+        match ($target) {
+            OrderStatus::PAID => OrderPaid::dispatch($updated),
+            OrderStatus::SHIPPED => OrderShipped::dispatch($updated),
+            OrderStatus::REFUNDED => OrderRefunded::dispatch($updated),
             default => null,
         };
 

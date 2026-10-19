@@ -246,10 +246,23 @@ class OrderService
      * strategies that settle an order during checkout. Authorization (who may
      * apply a transition) stays in the controller/policy layer.
      *
+     * Day 27: Transitioning to REFUNDED automatically invokes the order's polymorphic
+     * payment strategy refund method and records the resulting reference.
+     *
      * @throws InvalidOrderTransitionException when the transition is not allowed
      */
     public function transitionTo(Order $order, OrderStatus $target): Order
     {
-        return $this->transitions->apply($order, $target);
+        $updated = $this->transitions->apply($order, $target);
+
+        if ($target === OrderStatus::REFUNDED && $updated->refund_reference === null && filled($updated->payment_method)) {
+            $strategy = $this->payments->make($updated->payment_method);
+            $result = $strategy->refund($updated);
+            if ($result->successful && $result->reference !== null) {
+                $this->orders->recordRefund($updated, $result->reference, 'Status transitioned to refunded.');
+            }
+        }
+
+        return $updated;
     }
 }

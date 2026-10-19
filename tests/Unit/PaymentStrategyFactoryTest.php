@@ -7,6 +7,7 @@ use App\Models\Order;
 use App\Services\Payments\PaymentResult;
 use App\Services\Payments\PaymentStrategyFactory;
 use App\Services\Payments\PaymentStrategyInterface;
+use App\Services\Payments\RefundResult;
 use App\Services\Payments\Strategies\BankTransferStrategy;
 use App\Services\Payments\Strategies\CardPaymentStrategy;
 use App\Services\Payments\Strategies\CashOnDeliveryStrategy;
@@ -98,5 +99,10 @@ class FactoryFakeStrategy implements PaymentStrategyInterface
     public function pay(Order $order): PaymentResult
     {
         return PaymentResult::successful('WALLET-'.$order->id);
+    }
+
+    public function refund(Order $order, ?string $reason = null): RefundResult
+    {
+        return RefundResult::successful('REF-WALLET-'.$order->id);
     }
 }

@@ -364,6 +364,11 @@ class ChainFakeOrderRepository implements OrderRepositoryInterface
         throw new RuntimeException('Not used by the checkout chain.');
     }
 
+    public function recordRefund(Order $order, string $reference, ?string $reason = null): Order
+    {
+        throw new RuntimeException('Not used by the checkout chain.');
+    }
+
     public function countForUserSince(int $userId, CarbonInterface $since): int
     {
         $this->windowQueries++;

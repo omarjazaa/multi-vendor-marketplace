@@ -10,7 +10,7 @@ use App\Models\Order;
  * branches on the method itself, so a new method is a new class plus a
  * config entry.
  */
-interface PaymentStrategyInterface
+interface PaymentStrategyInterface extends RefundablePaymentInterface
 {
     /** The method this strategy handles; matches its marketplace.payments.methods key. */
     public function method(): string;

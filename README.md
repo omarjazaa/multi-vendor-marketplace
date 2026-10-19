@@ -3,7 +3,7 @@
 [![CI](https://github.com/omarjazaa/multi-vendor-marketplace/actions/workflows/ci.yml/badge.svg)](https://github.com/omarjazaa/multi-vendor-marketplace/actions/workflows/ci.yml)
 ![PHP Version](https://img.shields.io/badge/PHP-8.2%2B-777bb4?logo=php)
 ![Laravel Framework](https://img.shields.io/badge/Laravel-11.x-FF2D20?logo=laravel)
-![Tests](https://img.shields.io/badge/Tests-285%20Passing-brightgreen?logo=checkmarx)
+![Tests](https://img.shields.io/badge/Tests-305%20Passing-brightgreen?logo=checkmarx)
 ![License](https://img.shields.io/badge/License-MIT-blue)
 
 A scalable, multi-vendor e-commerce platform built with **Laravel 11**, designed around **Domain-Driven Design**, **SOLID principles**, and classic **GoF Design Patterns**.
@@ -17,8 +17,9 @@ A scalable, multi-vendor e-commerce platform built with **Laravel 11**, designed
 | **Decorator Pattern** | Pricing Engine (`PriceComponentInterface`, `BasePrice`, `DiscountDecorator`, `CouponDecorator`, `TaxDecorator`) | Transparent and modular price calculations for cart items and checkout totals. |
 | **Chain of Responsibility** | Checkout Validation (`StockAvailabilityCheck` → `CouponValidityCheck` → `FraudRiskCheck`) | Pluggable, sequentially evaluated validation guards that can halt checkout with descriptive errors. |
 | **Strategy + Factory** | Payment Processing (`PaymentGatewayInterface`, `PaymentGatewayFactory`, `StripeGateway`, `PayPalGateway`, `CashOnDeliveryGateway`) | Decoupled payment gateway integration with runtime driver resolution. |
+| **Interface Segregation (ISP)** | Polymorphic Refunds (`RefundablePaymentInterface`, `PaymentGatewayInterface`, `DisputeRefundService`) | Decoupled refund contract implemented polymorphically across card, cash on delivery, and bank transfer strategies. |
 | **State Pattern** | Order Lifecycle (`OrderState`, `PendingState`, `PaidState`, `ShippedState`, `DeliveredState`, `CancelledState`, `RefundedState`) | Strictly enforced, guarded state transitions across order fulfillment. |
-| **Observer Pattern** | Order Automation (`OrderPlaced`, `OrderPaid`, `OrderShipped` with dedicated listeners) | Dispatches side-effects (inventory updates, notifications) decoupled from domain models. |
+| **Observer Pattern** | Order Automation (`OrderPlaced`, `OrderPaid`, `OrderShipped`, `OrderRefunded` with dedicated listeners) | Dispatches side-effects (inventory updates, notifications) decoupled from domain models. |
 | **CQRS Split** | Vendor Analytics (`VendorDashboardQuery`, `VendorBestSellersQuery`, `VendorRevenueOverTimeQuery`) | Dedicated read-only query abstractions separated from write services. |
 | **Cache Aside & Invalidation** | Catalog & Categories (`CategoryController`, `ProductCatalogController`) | High-performance Redis caching layer with tag/key invalidation on catalog mutations. |
 | **Queue Worker & Jobs** | Asynchronous Background Processing (`GenerateVendorReportJob`, queued notifications) | Dedicated queues (`reports`, `notifications`, `default`) managed via Supervisor. |
@@ -61,10 +62,35 @@ A scalable, multi-vendor e-commerce platform built with **Laravel 11**, designed
 - [x] **Day 24**: Redis caching layer for catalog listings with invalidation hooks.
 - [x] **Day 25**: **Background Jobs & Queues**: Asynchronous vendor reports, queued notifications, and Docker Supervisor worker configuration.
 - [x] **Day 26**: **API Versioning (`/api/v1/...`)**, consistent resources (`UserResource`, `StoreResource`, `CategoryResource`, `VendorReportResource`), and rate limiting.
-- [ ] **Day 27**: Admin dispute/refund handling with polymorphic gateway refunds.
+- [x] **Day 27**: **Admin Dispute/Refund Handling**: Polymorphic gateway refunds (`RefundablePaymentInterface`, `PaymentGatewayInterface`), forced `RefundedState` transitions, and dispute resolution workflows.
 - [ ] **Day 28**: Comprehensive testing sprint & coverage audit.
 - [ ] **Day 29**: Multi-stage Docker production deployment.
 - [ ] **Day 30**: Full architectural documentation (`ARCHITECTURE.md`) & Postman collection.
+
+---
+
+## ⚡ Day 27 Highlights: Admin Dispute/Refund Handling & Polymorphic Gateway Refunds
+
+1. **Polymorphic Gateway Refunds (`RefundablePaymentInterface` & `PaymentGatewayInterface`)**:
+   - Built on SOLID's **Interface Segregation Principle (ISP)** by segregating refund capability into `RefundablePaymentInterface` and uniting it under `PaymentGatewayInterface`.
+   - Polymorphic refund behaviors for every payment strategy:
+     - `CardPaymentStrategy`: Simulates processor reversal with unique reference `REF-CARD-XXXXXX` and failure simulation support (`marketplace.payments.card.simulate_refund_failure`).
+     - `CashOnDeliveryStrategy`: Records courier/vendor cash reversal reference `REF-COD-XXXXXX`.
+     - `BankTransferStrategy`: Submits bank reversal transaction reference `REF-BANK-XXXXXX`.
+
+2. **Forced `RefundedState` Lifecycle Transitions**:
+   - Extended `OrderTransitionService::forceApply()` allowing administrators to override the state machine matrix during dispute resolution (e.g., forcing a refund on a package confirmed lost while in `shipped` status).
+   - Standard transitions still guard ordinary mutations (`pending` cannot jump directly to `refunded`, already `refunded` orders cannot be re-refunded).
+
+3. **End-to-End Customer Dispute Lifecycle**:
+   - Customers can open disputes on eligible orders (`paid`, `shipped`, `delivered`).
+   - Dedicated `Dispute` model and `DisputeRepositoryInterface` tracking reasons, statuses (`pending`, `under_review`, `resolved_refunded`, `rejected`), administrative notes, and resolver timestamps.
+   - Admin triage and dispute resolution endpoints:
+     - `POST /api/v1/admin/orders/{order}/refund`: Direct administrative order refund.
+     - `GET /api/v1/admin/disputes`: List customer disputes with status filter.
+     - `POST /api/v1/admin/disputes/{dispute}/refund`: Approve dispute with automatic gateway refund.
+     - `POST /api/v1/admin/disputes/{dispute}/reject`: Reject dispute with explanation.
+     - `POST /api/v1/orders/{order}/disputes`: Customer files dispute.
 
 ---
 

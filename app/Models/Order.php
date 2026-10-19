@@ -15,7 +15,18 @@ class Order extends Model
     use HasFactory;
 
     /** @var list<string> */
-    protected $fillable = ['user_id', 'store_id', 'status', 'payment_method', 'payment_reference', 'discount', 'tax', 'total_price'];
+    protected $fillable = [
+        'user_id',
+        'store_id',
+        'status',
+        'payment_method',
+        'payment_reference',
+        'refund_reference',
+        'refund_reason',
+        'discount',
+        'tax',
+        'total_price',
+    ];
 
     /** @return array<string, string> */
     protected function casts(): array
@@ -44,5 +55,11 @@ class Order extends Model
     public function items(): HasMany
     {
         return $this->hasMany(OrderItem::class);
+    }
+
+    /** Get all disputes filed on this order. */
+    public function disputes(): HasMany
+    {
+        return $this->hasMany(Dispute::class);
     }
 }

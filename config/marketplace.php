@@ -167,6 +167,11 @@ return [
                 'MARKETPLACE_CARD_DECLINE_MESSAGE',
                 'Your card was declined. Try another payment method or choose cash on delivery.',
             ),
+            'simulate_refund_failure' => (bool) env('MARKETPLACE_CARD_REFUND_FAILS', false),
+            'refund_decline_message' => env(
+                'MARKETPLACE_CARD_REFUND_DECLINE_MESSAGE',
+                'Card refund declined by payment processor.',
+            ),
         ],
 
     ],

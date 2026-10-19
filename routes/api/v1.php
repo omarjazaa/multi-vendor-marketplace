@@ -2,11 +2,13 @@
 
 use App\Http\Controllers\Api\AdminCategoryController;
 use App\Http\Controllers\Api\AdminCouponController;
+use App\Http\Controllers\Api\AdminDisputeController;
 use App\Http\Controllers\Api\AdminOrderController;
 use App\Http\Controllers\Api\AdminStoreController;
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\CartController;
 use App\Http\Controllers\Api\CategoryController;
+use App\Http\Controllers\Api\DisputeController;
 use App\Http\Controllers\Api\OrderController;
 use App\Http\Controllers\Api\ProductCatalogController;
 use App\Http\Controllers\Api\ProductReviewController;
@@ -81,6 +83,13 @@ Route::middleware('auth:sanctum')->group(function (): void {
     Route::prefix('admin/orders')->name('admin.orders.')->middleware('role:admin')->group(function (): void {
         Route::get('', [AdminOrderController::class, 'index'])->name('index');
         Route::patch('{order}/status', [AdminOrderController::class, 'updateStatus'])->name('update-status');
+        Route::post('{order}/refund', [AdminOrderController::class, 'refund'])->whereNumber('order')->name('refund');
+    });
+    Route::prefix('admin/disputes')->name('admin.disputes.')->middleware('role:admin')->group(function (): void {
+        Route::get('', [AdminDisputeController::class, 'index'])->name('index');
+        Route::get('{dispute}', [AdminDisputeController::class, 'show'])->whereNumber('dispute')->name('show');
+        Route::post('{dispute}/refund', [AdminDisputeController::class, 'refund'])->whereNumber('dispute')->name('refund');
+        Route::post('{dispute}/reject', [AdminDisputeController::class, 'reject'])->whereNumber('dispute')->name('reject');
     });
     Route::middleware('role:customer')->group(function (): void {
         Route::get('cart', [CartController::class, 'show'])->name('cart.show');
@@ -91,6 +100,9 @@ Route::middleware('auth:sanctum')->group(function (): void {
         // Checkout is customer only; rate-limited to avoid duplicate submission spam
         Route::post('checkout', [OrderController::class, 'checkout'])->middleware('throttle:checkout')->name('checkout');
         Route::post('products/{product}/reviews', [ProductReviewController::class, 'store'])->whereNumber('product')->name('products.reviews.store');
+        Route::post('orders/{order}/disputes', [DisputeController::class, 'store'])->whereNumber('order')->name('orders.disputes.store');
+        Route::get('orders/{order}/disputes', [DisputeController::class, 'orderDisputes'])->whereNumber('order')->name('orders.disputes.index');
+        Route::get('disputes', [DisputeController::class, 'index'])->name('disputes.index');
     });
     Route::get('orders', [OrderController::class, 'index'])->name('orders.index');
     Route::get('orders/{order}', [OrderController::class, 'show'])->name('orders.show');
