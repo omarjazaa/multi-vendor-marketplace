@@ -27,7 +27,33 @@ A scalable, multi-vendor e-commerce platform built with **Laravel 11**, designed
 
 ---
 
-## 📅 30-Day Development Roadmap
+## 🖥️ Interactive Platform Explorer (Frontend UI)
+
+The project includes an **interactive single-page explorer** accessible directly at `http://127.0.0.1:8000/`. It allows you to explore and test all marketplace domain features and API endpoints visually without configuring Postman or third-party tools:
+
+1. **One-Click Persona Switcher**:
+   - 👤 **Guest**: Explore public catalog, search, category filters, and product details.
+   - 🛍️ **Customer (Sarah Jenkins)**: Add items to cart, test coupon codes (`WELCOME10`, `SUPER50`), checkout, review order history, and submit dispute requests.
+   - 🏪 **Vendor (Apex Tech Store)**: Manage store inventory, view revenue metrics, and fulfill/ship orders with deterministic carrier tracking numbers.
+   - 👑 **Admin (Omar Al-Jazaa)**: Review customer disputes, inspect original payment methods, and trigger **Polymorphic Gateway Refunds** or administrative order overrides.
+
+2. **Real-time API Telemetry Drawer**:
+   - Inspect every underlying Sanctum API request with headers, latency benchmarks, HTTP status codes, and JSON response envelopes.
+
+3. **Quick Local Demo**:
+   ```bash
+   php artisan db:seed --class=MarketplaceSeeder
+   php artisan serve
+   # Navigate to http://127.0.0.1:8000/
+   ```
+
+| Persona | Email | Password | Role |
+|---|---|---|---|
+| **Admin** | `admin@marketplace.test` | `password` | Super Admin |
+| **Customer** | `sarah.customer@example.com` | `password` | Verified Customer |
+| **Vendor** | `vendor.apex@example.com` | `password` | Approved Merchant |
+
+---
 
 ### Week 1 — Core Foundation & Vendor Onboarding
 - [x] **Day 1**: CI/CD pipeline setup (GitHub Actions, PHPUnit, Laravel Pint).
