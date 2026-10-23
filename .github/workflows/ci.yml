@@ -2,34 +2,139 @@ name: CI
 
 on:
   push:
+    branches:
+      - main
+      - 'feature/**'
   pull_request:
+    branches:
+      - main
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
-  lint-and-test:
-    name: Pint + PHPUnit
+  lint:
+    name: Lint & Code Style (Pint)
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout
+      - name: Checkout Code
         uses: actions/checkout@v4
 
       - name: Setup PHP
         uses: shivammathur/setup-php@v2
         with:
           php-version: '8.3'
-          extensions: mbstring, dom, xml, sqlite3, pdo_sqlite
+          extensions: mbstring, dom, xml
+          tools: composer:v2
           coverage: none
 
-      - name: Install dependencies
+      - name: Validate Composer Configuration
+        run: composer validate --strict
+
+      - name: Get Composer Cache Directory
+        id: composer-cache
+        run: echo "dir=$(composer config cache-files-dir)" >> $GITHUB_OUTPUT
+
+      - name: Cache Composer Dependencies
+        uses: actions/cache@v4
+        with:
+          path: ${{ steps.composer-cache.outputs.dir }}
+          key: ${{ runner.os }}-composer-${{ hashFiles('**/composer.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-composer-
+
+      - name: Install Composer Dependencies
         run: composer install --prefer-dist --no-progress --no-interaction
 
-      - name: Prepare environment
+      - name: Check Code Style with Pint
+        run: vendor/bin/pint --test
+
+  test:
+    name: Test Suite (PHPUnit & Frontend)
+    runs-on: ubuntu-latest
+    needs: lint
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.3'
+          extensions: mbstring, dom, xml, sqlite3, pdo_sqlite, bcmath, pcntl
+          tools: composer:v2
+          coverage: none
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+
+      - name: Get Composer Cache Directory
+        id: composer-cache
+        run: echo "dir=$(composer config cache-files-dir)" >> $GITHUB_OUTPUT
+
+      - name: Cache Composer Dependencies
+        uses: actions/cache@v4
+        with:
+          path: ${{ steps.composer-cache.outputs.dir }}
+          key: ${{ runner.os }}-composer-${{ hashFiles('**/composer.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-composer-
+
+      - name: Install Composer Dependencies
+        run: composer install --prefer-dist --no-progress --no-interaction
+
+      - name: Install NPM Dependencies & Build Assets
+        run: |
+          npm ci || npm install --no-audit
+          npm run build
+
+      - name: Prepare Environment
         run: |
           cp .env.example .env
           php artisan key:generate
 
-      - name: Code style (Pint)
-        run: vendor/bin/pint --test
-
-      - name: Tests (PHPUnit)
+      - name: Run Test Suite
         run: php artisan test
+
+  docker:
+    name: Docker Multi-Stage Build & Compose Audit
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Validate Local Docker Compose
+        run: docker compose config --quiet
+
+      - name: Validate Production Docker Compose
+        run: docker compose -f docker-compose.prod.yml config --quiet
+
+      - name: Build Multi-Stage Development Target
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          target: development
+          load: true
+          tags: marketplace:dev
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Build Multi-Stage Production Target
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          target: production
+          load: true
+          tags: marketplace:prod
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
