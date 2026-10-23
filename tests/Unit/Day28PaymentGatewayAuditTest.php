@@ -149,7 +149,8 @@ class Day28PaymentGatewayAuditTest extends TestCase
     public function test_open_closed_principle_dynamic_custom_gateway_registration(): void
     {
         // Custom gateway mock implementation
-        $customGateway = new class implements PaymentGatewayInterface {
+        $customGateway = new class implements PaymentGatewayInterface
+        {
             public function method(): string
             {
                 return 'mock_crypto';

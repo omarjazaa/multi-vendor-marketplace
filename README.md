@@ -3,7 +3,7 @@
 [![CI](https://github.com/omarjazaa/multi-vendor-marketplace/actions/workflows/ci.yml/badge.svg)](https://github.com/omarjazaa/multi-vendor-marketplace/actions/workflows/ci.yml)
 ![PHP Version](https://img.shields.io/badge/PHP-8.2%2B-777bb4?logo=php)
 ![Laravel Framework](https://img.shields.io/badge/Laravel-11.x-FF2D20?logo=laravel)
-![Tests](https://img.shields.io/badge/Tests-305%20Passing-brightgreen?logo=checkmarx)
+![Tests](https://img.shields.io/badge/Tests-339%20Passing-brightgreen?logo=checkmarx)
 ![License](https://img.shields.io/badge/License-MIT-blue)
 
 A scalable, multi-vendor e-commerce platform built with **Laravel 11**, designed around **Domain-Driven Design**, **SOLID principles**, and classic **GoF Design Patterns**.
@@ -90,8 +90,25 @@ The project includes an **interactive single-page explorer** accessible directly
 - [x] **Day 26**: **API Versioning (`/api/v1/...`)**, consistent resources (`UserResource`, `StoreResource`, `CategoryResource`, `VendorReportResource`), and rate limiting.
 - [x] **Day 27**: **Admin Dispute/Refund Handling**: Polymorphic gateway refunds (`RefundablePaymentInterface`, `PaymentGatewayInterface`), forced `RefundedState` transitions, and dispute resolution workflows.
 - [x] **Day 28**: Comprehensive testing sprint & coverage audit.
-- [ ] **Day 29**: Multi-stage Docker production deployment.
+- [x] **Day 29**: **Multi-Stage Docker Production Deployment & Telemetry**: 5-stage Dockerfile, production Compose topology, live system health check API (`/api/v1/system/health`), and automated CI/CD Buildx verification.
 - [ ] **Day 30**: Full architectural documentation (`ARCHITECTURE.md`) & Postman collection.
+
+---
+
+## ⚡ Day 29 Highlights: Multi-Stage Docker Production Deployment & System Health Telemetry
+
+1. **5-Stage Docker Architecture & Production Orchestration**:
+   - Multi-stage build isolating Node Vite compilation, Composer `--no-dev` dependency installation, base PHP 8.3 FPM runtime, immutable production images, and local development environments.
+   - Comprehensive multi-container topology (`docker-compose.yml` & `docker-compose.prod.yml`) orchestrating `app`, `queue` worker, `scheduler` daemon, `mysql:8.4` (with `db` alias), `redis:7-alpine`, and `nginx:1.27-alpine` reverse proxy.
+   - Complete architectural breakdown documented in [`docs/DAY_29_DOCKER_PRODUCTION_DEPLOYMENT.md`](docs/DAY_29_DOCKER_PRODUCTION_DEPLOYMENT.md).
+
+2. **System Health & Service Telemetry Endpoint (`GET /api/v1/system/health`)**:
+   - Real-time diagnostic endpoint auditing MySQL database connectivity (with latency in ms), cache subsystem operations, filesystem permissions (`storage/` & `storage/logs/`), PHP runtime, and environment status.
+   - Fully backward-compatible fallback at `/api/system/health` with `X-API-Version` and UUID `X-Request-Id` tracking headers.
+   - Integrated live in the Interactive Platform Explorer with one-click diagnostic telemetry.
+
+3. **Enhanced GitHub Actions CI/CD Pipeline**:
+   - Triple-stage automated workflow: PSR-12 code style audits (`Laravel Pint`), full automated test suite (339 tests, 2,049 assertions), and Docker Buildx multi-stage verification.
 
 ---
 

@@ -3,29 +3,18 @@
 namespace Tests\Unit;
 
 use App\Enums\DiscountType;
-use App\Enums\OrderStatus;
-use App\Exceptions\FraudRiskException;
 use App\Exceptions\InsufficientStockException;
 use App\Exceptions\InvalidCouponException;
 use App\Models\Cart;
 use App\Models\CartItem;
 use App\Models\Coupon;
 use App\Models\Inventory;
-use App\Models\Order;
 use App\Models\Product;
-use App\Models\Store;
-use App\Models\User;
-use App\Repositories\Contracts\CouponRepositoryInterface;
-use App\Repositories\Contracts\InventoryRepositoryInterface;
-use App\Repositories\Contracts\OrderRepositoryInterface;
 use App\Services\Checkout\CheckoutContext;
 use App\Services\Checkout\CheckoutValidationHandler;
-use App\Services\Checkout\CheckoutValidationPipeline;
 use App\Services\Checkout\CouponValidityCheck;
-use App\Services\Checkout\FraudRiskCheck;
 use App\Services\Checkout\StockAvailabilityCheck;
 use App\Services\Pricing\BasePrice;
-use App\Services\Pricing\CouponDecorator;
 use App\Services\Pricing\DiscountDecorator;
 use App\Services\Pricing\TaxDecorator;
 use ArrayObject;
@@ -60,8 +49,10 @@ class Day28CheckoutPipelineAuditTest extends TestCase
         $log = new ArrayObject;
         $haltException = new RuntimeException('First link failed.');
 
-        $link1 = new class($log, $haltException) extends CheckoutValidationHandler {
+        $link1 = new class($log, $haltException) extends CheckoutValidationHandler
+        {
             public function __construct(private ArrayObject $log, private RuntimeException $ex) {}
+
             protected function validate(CheckoutContext $context): void
             {
                 $this->log->append('link1');
@@ -69,8 +60,10 @@ class Day28CheckoutPipelineAuditTest extends TestCase
             }
         };
 
-        $link2 = new class($log) extends CheckoutValidationHandler {
+        $link2 = new class($log) extends CheckoutValidationHandler
+        {
             public function __construct(private ArrayObject $log) {}
+
             protected function validate(CheckoutContext $context): void
             {
                 $this->log->append('link2');

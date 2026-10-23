@@ -2,16 +2,13 @@
 
 namespace Tests\Feature;
 
-use App\Enums\DiscountType;
 use App\Enums\OrderStatus;
 use App\Enums\StoreStatus;
 use App\Enums\UserRole;
 use App\Models\Cart;
-use App\Models\CartItem;
 use App\Models\Coupon;
 use App\Models\Inventory;
 use App\Models\Order;
-use App\Models\OrderItem;
 use App\Models\Product;
 use App\Models\Store;
 use App\Models\User;

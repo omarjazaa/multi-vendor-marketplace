@@ -14,6 +14,7 @@ use App\Http\Controllers\Api\ProductCatalogController;
 use App\Http\Controllers\Api\ProductReviewController;
 use App\Http\Controllers\Api\RoleAccessController;
 use App\Http\Controllers\Api\StoreController;
+use App\Http\Controllers\Api\SystemHealthController;
 use App\Http\Controllers\Api\VendorAnalyticsController;
 use App\Http\Controllers\Api\VendorCouponController;
 use App\Http\Controllers\Api\VendorInventoryController;
@@ -33,6 +34,9 @@ use Illuminate\Support\Facades\Route;
 | and targeted rate limiting on sensitive actions.
 |
 */
+
+// System health & telemetry endpoint (Docker production deployment & orchestration monitoring)
+Route::get('system/health', [SystemHealthController::class, 'index'])->name('system.health');
 
 // Public catalog & categories — browsable by guests, no authentication required.
 Route::get('categories', [CategoryController::class, 'index'])->name('categories.index');

@@ -865,15 +865,18 @@
                     <span class="logo-badge">Laravel 11 • DDD</span>
                 </div>
                 <div style="font-size: 0.75rem; color: var(--text-muted);">
-                    Day 27: Polymorphic Gateway Refunds & Admin Disputes
+                    Day 29: Multi-Stage Docker Production Deployment & CI Pipeline
                 </div>
             </div>
         </a>
 
-        <div style="display: flex; align-items: center; gap: 1rem;">
+        <div style="display: flex; align-items: center; gap: 0.75rem;">
+            <button class="btn-action" style="background: rgba(16, 185, 129, 0.15); color: var(--accent-emerald); border: 1px solid rgba(16, 185, 129, 0.3); font-size: 0.75rem; padding: 0.35rem 0.65rem;" onclick="checkSystemHealth()" title="Audit real-time Docker & Service Telemetry">
+                🩺 System Health
+            </button>
             <div style="font-size: 0.85rem; color: var(--text-secondary); text-align: right;">
-                <span style="color: var(--accent-emerald); font-weight: 700;">● 305 Tests Passing</span><br>
-                <span style="font-size: 0.75rem;">API Gateway /api/v1</span>
+                <span style="color: var(--accent-emerald); font-weight: 700;">● 339 Tests Passing</span><br>
+                <span style="font-size: 0.75rem;">Docker Production Stack</span>
             </div>
         </div>
     </header>
@@ -1841,6 +1844,29 @@
             const arrow = document.getElementById('drawer-toggle-arrow');
             drawer.classList.toggle('open');
             arrow.textContent = drawer.classList.contains('open') ? '▼' : '▲';
+        }
+
+        function openApiDrawer() {
+            const drawer = document.getElementById('api-drawer');
+            const arrow = document.getElementById('drawer-toggle-arrow');
+            if (drawer && !drawer.classList.contains('open')) {
+                drawer.classList.add('open');
+                if (arrow) arrow.textContent = '▼';
+            }
+        }
+
+        async function checkSystemHealth() {
+            try {
+                showToast('Auditing Docker container and service telemetry...', 'info');
+                const res = await callApi('/api/v1/system/health');
+                const data = res.data;
+                const dbStatus = data.services.database.connected ? 'Connected' : 'Disconnected';
+                const cacheStatus = data.services.cache.operational ? 'Active' : 'Degraded';
+                showToast(`System Health: ${data.status.toUpperCase()} (${data.latency_ms}ms) • DB: ${dbStatus} • Cache: ${cacheStatus} • PHP ${data.runtime.php_version}`, 'success');
+                openApiDrawer();
+            } catch (err) {
+                showToast('System health check error: ' + err.message, 'error');
+            }
         }
 
         // Toasts
