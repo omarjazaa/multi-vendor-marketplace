@@ -818,6 +818,145 @@
         .toast-success { border-color: var(--accent-emerald); color: var(--accent-emerald); }
         .toast-error { border-color: var(--accent-rose); color: var(--accent-rose); }
 
+        /* Notifications Bell & Drawer (Day 30 Feature) */
+        .notification-bell-btn {
+            position: relative;
+            background: var(--bg-elevated);
+            border: 1px solid var(--border-color);
+            color: var(--text-primary);
+            width: 36px;
+            height: 36px;
+            border-radius: var(--radius-full);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: var(--transition);
+            font-size: 1.05rem;
+        }
+
+        .notification-bell-btn:hover {
+            border-color: var(--primary);
+            box-shadow: 0 0 12px var(--primary-glow);
+            transform: translateY(-1px);
+        }
+
+        .notification-badge {
+            position: absolute;
+            top: -5px;
+            right: -5px;
+            background: var(--accent-rose);
+            color: #ffffff;
+            font-size: 0.68rem;
+            font-weight: 700;
+            min-width: 18px;
+            height: 18px;
+            border-radius: var(--radius-full);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 0 4px;
+            box-shadow: 0 2px 6px rgba(244, 63, 94, 0.4);
+        }
+
+        .notif-modal-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.65);
+            backdrop-filter: blur(8px);
+            -webkit-backdrop-filter: blur(8px);
+            z-index: 2500;
+            display: none;
+            align-items: flex-start;
+            justify-content: flex-end;
+            padding: 1.5rem;
+            animation: fadeIn 0.2s ease;
+        }
+
+        .notif-modal-overlay.open {
+            display: flex;
+        }
+
+        .notif-drawer {
+            width: 100%;
+            max-width: 440px;
+            height: calc(100vh - 3rem);
+            background: var(--bg-surface);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-lg);
+            box-shadow: var(--shadow-md);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            animation: slideInRight 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        @keyframes slideInRight {
+            from { transform: translateX(30px); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }
+
+        .notif-header {
+            padding: 1.15rem 1.5rem;
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            background: var(--bg-elevated);
+        }
+
+        .notif-filter-bar {
+            padding: 0.6rem 1.25rem;
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            gap: 0.5rem;
+            background: var(--bg-surface);
+        }
+
+        .notif-filter-chip {
+            background: var(--bg-elevated);
+            border: 1px solid var(--border-color);
+            color: var(--text-secondary);
+            font-size: 0.78rem;
+            padding: 0.3rem 0.75rem;
+            border-radius: var(--radius-full);
+            cursor: pointer;
+            transition: var(--transition);
+        }
+
+        .notif-filter-chip.active {
+            background: var(--primary);
+            color: #ffffff;
+            border-color: var(--primary);
+        }
+
+        .notif-body {
+            flex: 1;
+            overflow-y: auto;
+            padding: 1rem;
+            display: flex;
+            flex-direction: column;
+            gap: 0.75rem;
+        }
+
+        .notif-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-md);
+            padding: 0.85rem 1rem;
+            transition: var(--transition);
+            position: relative;
+        }
+
+        .notif-card.unread {
+            border-left: 3px solid var(--primary);
+            background: rgba(99, 102, 241, 0.08);
+        }
+
+        .notif-card:hover {
+            border-color: var(--primary);
+        }
+
         @keyframes slideIn {
             from { transform: translateX(100%); opacity: 0; }
             to { transform: translateX(0); opacity: 1; }
@@ -865,17 +1004,21 @@
                     <span class="logo-badge">Laravel 11 • DDD</span>
                 </div>
                 <div style="font-size: 0.75rem; color: var(--text-muted);">
-                    Day 29: Multi-Stage Docker Production Deployment & CI Pipeline
+                    Day 30: In-App Notification Center & Architecture Refinement
                 </div>
             </div>
         </a>
 
         <div style="display: flex; align-items: center; gap: 0.75rem;">
+            <button class="notification-bell-btn" onclick="toggleNotificationsModal()" title="View In-App Notifications" id="notification-bell-btn">
+                <span>🔔</span>
+                <span class="notification-badge" id="notification-badge-count" style="display: none;">0</span>
+            </button>
             <button class="btn-action" style="background: rgba(16, 185, 129, 0.15); color: var(--accent-emerald); border: 1px solid rgba(16, 185, 129, 0.3); font-size: 0.75rem; padding: 0.35rem 0.65rem;" onclick="checkSystemHealth()" title="Audit real-time Docker & Service Telemetry">
                 🩺 System Health
             </button>
             <div style="font-size: 0.85rem; color: var(--text-secondary); text-align: right;">
-                <span style="color: var(--accent-emerald); font-weight: 700;">● 339 Tests Passing</span><br>
+                <span style="color: var(--accent-emerald); font-weight: 700;">● 350 Tests Passing</span><br>
                 <span style="font-size: 0.75rem;">Docker Production Stack</span>
             </div>
         </div>
@@ -1199,6 +1342,47 @@
         </div>
     </div>
 
+    <!-- Notification Center Modal / Drawer (Day 30) -->
+    <div class="notif-modal-overlay" id="notif-modal-overlay" onclick="handleNotifOverlayClick(event)">
+        <div class="notif-drawer">
+            <div class="notif-header">
+                <div style="display: flex; align-items: center; gap: 0.6rem;">
+                    <span style="font-size: 1.25rem;">🔔</span>
+                    <div>
+                        <h3 style="font-size: 1.05rem; font-weight: 700; margin: 0;">Notification Center</h3>
+                        <span style="font-size: 0.75rem; color: var(--text-muted);" id="notif-unread-status">No unread notifications</span>
+                    </div>
+                </div>
+                <div style="display: flex; align-items: center; gap: 0.5rem;">
+                    <button class="btn-action" style="font-size: 0.75rem; padding: 0.35rem 0.65rem;" onclick="markAllNotificationsAsRead()" title="Mark all notifications as read">
+                        ✓ Mark All Read
+                    </button>
+                    <button class="theme-toggle-btn" style="width: 28px; height: 28px; font-size: 0.8rem;" onclick="toggleNotificationsModal()" title="Close">
+                        ✕
+                    </button>
+                </div>
+            </div>
+
+            <div class="notif-filter-bar">
+                <button class="notif-filter-chip active" id="notif-filter-all" onclick="setNotifFilter('all')">
+                    All
+                </button>
+                <button class="notif-filter-chip" id="notif-filter-unread" onclick="setNotifFilter('unread')">
+                    Unread Only
+                </button>
+                <button class="btn-action" style="margin-left: auto; background: transparent; border: none; color: var(--primary); font-size: 0.75rem; padding: 0; text-decoration: underline;" onclick="refreshNotifications()">
+                    🔄 Refresh
+                </button>
+            </div>
+
+            <div class="notif-body" id="notif-stream">
+                <div style="text-align: center; color: var(--text-muted); padding: 3rem 1rem;">
+                    Please select a persona (Customer, Vendor, or Admin) to view your in-app notifications.
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- Toast Notifications Container -->
     <div class="toast-container" id="toast-container"></div>
 
@@ -1214,6 +1398,9 @@
             products: [],
             categories: [],
             orders: [],
+            notifications: [],
+            unreadNotificationCount: 0,
+            notificationFilter: 'all',
             apiCalls: 0
         };
 
@@ -1250,6 +1437,10 @@
             if (type === 'guest') {
                 state.token = null;
                 state.user = null;
+                state.notifications = [];
+                state.unreadNotificationCount = 0;
+                updateNotificationBadge();
+                renderNotifications();
                 showToast('Switched to Guest Mode', 'success');
                 updateAuthStatusUI();
                 return;
@@ -1267,6 +1458,9 @@
                     state.user = res.data.user;
                     showToast(`Logged in as ${p.name}`, 'success');
                     updateAuthStatusUI();
+
+                    fetchUnreadNotificationCount();
+                    fetchNotifications();
 
                     if (type === 'customer') {
                         navigateTab('cart');
@@ -1570,6 +1764,8 @@
 
                 showToast('Checkout successful! Orders created.', 'success');
                 fetchCart();
+                fetchUnreadNotificationCount();
+                fetchNotifications();
                 navigateTab('orders');
             } catch (err) {
                 showToast(err.message, 'error');
@@ -1866,6 +2062,186 @@
                 openApiDrawer();
             } catch (err) {
                 showToast('System health check error: ' + err.message, 'error');
+            }
+        }
+
+        // ==========================================
+        // Notification Center Logic (Day 30 Feature)
+        // ==========================================
+        function toggleNotificationsModal() {
+            const overlay = document.getElementById('notif-modal-overlay');
+            const isOpen = overlay.classList.toggle('open');
+            if (isOpen && state.token) {
+                fetchUnreadNotificationCount();
+                fetchNotifications();
+            }
+        }
+
+        function handleNotifOverlayClick(e) {
+            if (e.target.id === 'notif-modal-overlay') {
+                toggleNotificationsModal();
+            }
+        }
+
+        function setNotifFilter(filter) {
+            state.notificationFilter = filter;
+            document.getElementById('notif-filter-all').classList.toggle('active', filter === 'all');
+            document.getElementById('notif-filter-unread').classList.toggle('active', filter === 'unread');
+            fetchNotifications();
+        }
+
+        async function refreshNotifications() {
+            if (!state.token) {
+                showToast('Please select a persona first.', 'error');
+                return;
+            }
+            await fetchUnreadNotificationCount();
+            await fetchNotifications();
+            showToast('Notifications synchronized.', 'success');
+        }
+
+        async function fetchUnreadNotificationCount() {
+            if (!state.token) {
+                state.unreadNotificationCount = 0;
+                updateNotificationBadge();
+                return;
+            }
+            try {
+                const res = await callApi('/api/v1/notifications/unread-count');
+                state.unreadNotificationCount = res.data?.unread_count || 0;
+                updateNotificationBadge();
+            } catch (err) {
+                console.error('Failed to fetch unread notification count:', err);
+            }
+        }
+
+        function updateNotificationBadge() {
+            const badge = document.getElementById('notification-badge-count');
+            const statusText = document.getElementById('notif-unread-status');
+            const count = state.unreadNotificationCount;
+
+            if (count > 0) {
+                badge.textContent = count > 99 ? '99+' : count;
+                badge.style.display = 'flex';
+                statusText.textContent = `${count} unread notification${count === 1 ? '' : 's'}`;
+                statusText.style.color = 'var(--accent-amber)';
+            } else {
+                badge.style.display = 'none';
+                statusText.textContent = 'All caught up! No unread notifications.';
+                statusText.style.color = 'var(--text-muted)';
+            }
+        }
+
+        async function fetchNotifications() {
+            const stream = document.getElementById('notif-stream');
+            if (!state.token) {
+                renderNotifications();
+                return;
+            }
+            try {
+                let url = '/api/v1/notifications?per_page=25';
+                if (state.notificationFilter === 'unread') {
+                    url += '&unread=1';
+                }
+                const res = await callApi(url);
+                state.notifications = res.data?.notifications?.data || [];
+                renderNotifications();
+            } catch (err) {
+                stream.innerHTML = `<div style="color: var(--accent-rose); text-align: center; padding: 2rem;">Error: ${err.message}</div>`;
+            }
+        }
+
+        function renderNotifications() {
+            const stream = document.getElementById('notif-stream');
+            if (!state.token) {
+                stream.innerHTML = `
+                    <div style="text-align: center; color: var(--text-muted); padding: 3rem 1rem;">
+                        <span style="font-size: 2rem; display: block; margin-bottom: 0.5rem;">🔒</span>
+                        Please switch to a persona (Customer, Vendor, or Admin) to view your in-app notification center.
+                    </div>
+                `;
+                return;
+            }
+
+            if (!state.notifications.length) {
+                stream.innerHTML = `
+                    <div style="text-align: center; color: var(--text-muted); padding: 3rem 1rem;">
+                        <span style="font-size: 2rem; display: block; margin-bottom: 0.5rem;">📭</span>
+                        No ${state.notificationFilter === 'unread' ? 'unread ' : ''}notifications at this time.
+                    </div>
+                `;
+                return;
+            }
+
+            stream.innerHTML = state.notifications.map(n => {
+                const typeStr = (n.type || '').toLowerCase();
+                let icon = '🔔';
+                if (typeStr.includes('order') || (n.data && n.data.kind === 'order_alert')) icon = '📦';
+                else if (typeStr.includes('payment') || typeStr.includes('refund')) icon = '💳';
+                else if (typeStr.includes('ship')) icon = '🚚';
+                else if (typeStr.includes('vendor') || typeStr.includes('store')) icon = '🏪';
+
+                const isUnread = !n.is_read;
+
+                return `
+                    <div class="notif-card ${isUnread ? 'unread' : ''}" id="notif-card-${n.id}">
+                        <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 0.5rem; margin-bottom: 0.35rem;">
+                            <div style="display: flex; align-items: center; gap: 0.4rem; font-weight: 600; font-size: 0.9rem;">
+                                <span>${icon}</span>
+                                <span>${n.title || 'Notification'}</span>
+                                ${isUnread ? '<span style="display: inline-block; width: 6px; height: 6px; border-radius: 50%; background: var(--primary);"></span>' : ''}
+                            </div>
+                            <span style="font-size: 0.72rem; color: var(--text-muted);">${n.created_at_human || 'recently'}</span>
+                        </div>
+                        <div style="font-size: 0.82rem; color: var(--text-secondary); margin-bottom: 0.5rem; line-height: 1.4;">
+                            ${n.body || (n.data && (n.data.body || n.data.message)) || ''}
+                        </div>
+                        <div style="display: flex; justify-content: flex-end; gap: 0.5rem;">
+                            ${isUnread ? `
+                                <button class="btn-action" style="font-size: 0.72rem; padding: 0.25rem 0.55rem; background: var(--bg-elevated); border: 1px solid var(--border-color); color: var(--text-primary);" onclick="markNotificationAsRead('${n.id}')">
+                                    Mark Read
+                                </button>
+                            ` : ''}
+                            <button class="btn-action" style="font-size: 0.72rem; padding: 0.25rem 0.55rem; background: transparent; border: 1px solid transparent; color: var(--text-muted);" onclick="deleteNotification('${n.id}')" title="Dismiss">
+                                🗑️ Dismiss
+                            </button>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        async function markNotificationAsRead(id) {
+            try {
+                await callApi(`/api/v1/notifications/${id}/read`, 'PATCH');
+                showToast('Notification marked as read.', 'success');
+                await fetchUnreadNotificationCount();
+                await fetchNotifications();
+            } catch (err) {
+                showToast(err.message, 'error');
+            }
+        }
+
+        async function markAllNotificationsAsRead() {
+            if (!state.token) return;
+            try {
+                const res = await callApi('/api/v1/notifications/read-all', 'POST');
+                showToast(`Marked ${res.data?.marked_count || 0} notifications as read.`, 'success');
+                await fetchUnreadNotificationCount();
+                await fetchNotifications();
+            } catch (err) {
+                showToast(err.message, 'error');
+            }
+        }
+
+        async function deleteNotification(id) {
+            try {
+                await callApi(`/api/v1/notifications/${id}`, 'DELETE');
+                showToast('Notification dismissed.', 'success');
+                await fetchUnreadNotificationCount();
+                await fetchNotifications();
+            } catch (err) {
+                showToast(err.message, 'error');
             }
         }
 
