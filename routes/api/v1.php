@@ -9,6 +9,7 @@ use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\CartController;
 use App\Http\Controllers\Api\CategoryController;
 use App\Http\Controllers\Api\DisputeController;
+use App\Http\Controllers\Api\NotificationController;
 use App\Http\Controllers\Api\OrderController;
 use App\Http\Controllers\Api\ProductCatalogController;
 use App\Http\Controllers\Api\ProductReviewController;
@@ -110,6 +111,13 @@ Route::middleware('auth:sanctum')->group(function (): void {
     });
     Route::get('orders', [OrderController::class, 'index'])->name('orders.index');
     Route::get('orders/{order}', [OrderController::class, 'show'])->name('orders.show');
+    Route::prefix('notifications')->name('notifications.')->group(function (): void {
+        Route::get('', [NotificationController::class, 'index'])->name('index');
+        Route::get('unread-count', [NotificationController::class, 'unreadCount'])->name('unread-count');
+        Route::patch('{id}/read', [NotificationController::class, 'markAsRead'])->name('read');
+        Route::post('read-all', [NotificationController::class, 'markAllAsRead'])->name('read-all');
+        Route::delete('{id}', [NotificationController::class, 'destroy'])->name('destroy');
+    });
     Route::apiResource('vendor/products', VendorProductController::class)
         ->only(['index', 'store', 'update', 'destroy'])
         ->middleware('role:vendor');
