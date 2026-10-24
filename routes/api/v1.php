@@ -14,6 +14,7 @@ use App\Http\Controllers\Api\OrderController;
 use App\Http\Controllers\Api\ProductCatalogController;
 use App\Http\Controllers\Api\ProductReviewController;
 use App\Http\Controllers\Api\RoleAccessController;
+use App\Http\Controllers\Api\ShipmentTrackingController;
 use App\Http\Controllers\Api\StoreController;
 use App\Http\Controllers\Api\SystemHealthController;
 use App\Http\Controllers\Api\VendorAnalyticsController;
@@ -45,6 +46,9 @@ Route::get('products', [ProductCatalogController::class, 'index'])->name('produc
 Route::get('products/{product}', [ProductCatalogController::class, 'show'])->whereNumber('product')->name('products.show');
 Route::get('products/{product}/reviews', [ProductReviewController::class, 'index'])->whereNumber('product')->name('products.reviews.index');
 
+// Public parcel tracking endpoint (simulated carrier tracking portal)
+Route::get('shipments/track/{trackingNumber}', [ShipmentTrackingController::class, 'track'])->name('shipments.track');
+
 Route::prefix('auth')->name('auth.')->group(function (): void {
     Route::post('register', [AuthController::class, 'register'])->middleware('throttle:auth')->name('register');
     Route::post('login', [AuthController::class, 'login'])->middleware('throttle:auth')->name('login');
@@ -75,6 +79,10 @@ Route::middleware('auth:sanctum')->group(function (): void {
         Route::patch('{order}/status', [VendorOrderController::class, 'updateStatus'])->name('update-status');
         Route::post('{order}/items/{item}/ship', [VendorShipmentController::class, 'ship'])->name('ship');
     });
+    Route::patch('vendor/shipments/{shipment}/status', [VendorShipmentController::class, 'updateStatus'])
+        ->whereNumber('shipment')
+        ->middleware('role:vendor')
+        ->name('vendor.shipments.update-status');
     Route::prefix('vendor/analytics')->name('vendor.analytics.')->middleware('role:vendor')->group(function (): void {
         Route::get('dashboard', [VendorAnalyticsController::class, 'dashboard'])->name('dashboard');
         Route::get('summary', [VendorAnalyticsController::class, 'summary'])->name('summary');
@@ -111,6 +119,7 @@ Route::middleware('auth:sanctum')->group(function (): void {
     });
     Route::get('orders', [OrderController::class, 'index'])->name('orders.index');
     Route::get('orders/{order}', [OrderController::class, 'show'])->name('orders.show');
+    Route::get('orders/{order}/shipments', [ShipmentTrackingController::class, 'forOrder'])->whereNumber('order')->name('orders.shipments');
     Route::prefix('notifications')->name('notifications.')->group(function (): void {
         Route::get('', [NotificationController::class, 'index'])->name('index');
         Route::get('unread-count', [NotificationController::class, 'unreadCount'])->name('unread-count');

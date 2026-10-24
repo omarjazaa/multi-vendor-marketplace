@@ -3,14 +3,17 @@
 namespace App\Http\Controllers\Api;
 
 use App\Enums\OrderStatus;
+use App\Enums\ShipmentStatus;
 use App\Exceptions\InvalidOrderTransitionException;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\ShipOrderRequest;
+use App\Http\Requests\UpdateShipmentStatusRequest;
 use App\Http\Resources\OrderResource;
 use App\Http\Resources\ShipmentResource;
 use App\Http\Traits\ApiResponse;
 use App\Models\Order;
 use App\Models\OrderItem;
+use App\Models\Shipment;
 use App\Services\OrderService;
 use App\Services\ShipmentTrackingService;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
@@ -70,5 +73,30 @@ class VendorShipmentController extends Controller
             'Order shipped.',
             200,
         );
+    }
+
+    /**
+     * Advance a shipment's lifecycle milestone (role:vendor).
+     *
+     * Transitions between processing -> in_transit -> out_for_delivery -> delivered.
+     * When delivered, sets delivered_at timestamp and transitions the order when complete.
+     */
+    public function updateStatus(UpdateShipmentStatusRequest $request, Shipment $shipment): JsonResponse
+    {
+        $order = $shipment->orderItem?->order ?? Order::find($shipment->orderItem?->order_id);
+
+        if ($order === null) {
+            return $this->errorResponse('Order for shipment not found.', [], 404);
+        }
+
+        Gate::authorize('update', $order);
+
+        $targetStatus = ShipmentStatus::from($request->validated('status'));
+        $updated = $this->tracking->updateStatus($shipment, $targetStatus);
+
+        return $this->successResponse([
+            'shipment' => ShipmentResource::make($updated),
+            'order' => OrderResource::make($order->fresh(['items.shipment'])),
+        ], "Shipment status updated to {$targetStatus->value}.");
     }
 }

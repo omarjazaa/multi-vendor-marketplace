@@ -2,6 +2,7 @@
 
 namespace App\Http\Resources;
 
+use App\Enums\ShipmentStatus;
 use App\Models\OrderItem;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
@@ -31,6 +32,12 @@ class VendorOrderLineResource extends JsonResource
             'unit_price' => $this->unit_price,
             'quantity' => $this->quantity,
             'line_total' => number_format((float) $this->unit_price * $this->quantity, 2, '.', ''),
+            'shipment' => $this->shipment ? [
+                'id' => $this->shipment->id,
+                'tracking_number' => $this->shipment->tracking_number,
+                'status' => $this->shipment->status instanceof ShipmentStatus ? $this->shipment->status->value : (string) $this->shipment->status,
+                'delivered_at' => $this->shipment->delivered_at?->toIso8601String(),
+            ] : null,
         ];
     }
 }

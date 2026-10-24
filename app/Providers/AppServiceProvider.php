@@ -34,6 +34,7 @@ use App\Repositories\Contracts\NotificationRepositoryInterface;
 use App\Repositories\Contracts\OrderRepositoryInterface;
 use App\Repositories\Contracts\ProductImageRepositoryInterface;
 use App\Repositories\Contracts\ProductRepositoryInterface;
+use App\Repositories\Contracts\ShipmentRepositoryInterface;
 use App\Repositories\Contracts\StoreRepositoryInterface;
 use App\Repositories\Contracts\UserRepositoryInterface;
 use App\Repositories\EloquentCartRepository;
@@ -43,6 +44,7 @@ use App\Repositories\EloquentInventoryRepository;
 use App\Repositories\EloquentNotificationRepository;
 use App\Repositories\EloquentOrderRepository;
 use App\Repositories\EloquentProductImageRepository;
+use App\Repositories\EloquentShipmentRepository;
 use App\Repositories\EloquentStoreRepository;
 use App\Repositories\EloquentUserRepository;
 use App\Services\CatalogCacheService;
@@ -79,6 +81,10 @@ class AppServiceProvider extends ServiceProvider
         $this->app->bind(
             NotificationRepositoryInterface::class,
             EloquentNotificationRepository::class,
+        );
+        $this->app->bind(
+            ShipmentRepositoryInterface::class,
+            EloquentShipmentRepository::class,
         );
     }
 

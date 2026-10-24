@@ -818,6 +818,65 @@
         .toast-success { border-color: var(--accent-emerald); color: var(--accent-emerald); }
         .toast-error { border-color: var(--accent-rose); color: var(--accent-rose); }
 
+        /* Tracking Timeline Styles */
+        .timeline-container {
+            margin: 1.25rem 0;
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+            position: relative;
+        }
+
+        .timeline-step {
+            display: flex;
+            gap: 1rem;
+            position: relative;
+        }
+
+        .timeline-step::before {
+            content: '';
+            position: absolute;
+            left: 17px;
+            top: 36px;
+            bottom: -16px;
+            width: 2px;
+            background: var(--border-color);
+        }
+
+        .timeline-step:last-child::before {
+            display: none;
+        }
+
+        .timeline-step.completed::before {
+            background: var(--accent-emerald);
+        }
+
+        .timeline-icon-box {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            background: var(--bg-elevated);
+            border: 2px solid var(--border-color);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1rem;
+            z-index: 1;
+            flex-shrink: 0;
+            transition: var(--transition);
+        }
+
+        .timeline-step.completed .timeline-icon-box {
+            border-color: var(--accent-emerald);
+            background: rgba(16, 185, 129, 0.15);
+        }
+
+        .timeline-step.current .timeline-icon-box {
+            border-color: var(--primary);
+            background: rgba(99, 102, 241, 0.2);
+            box-shadow: 0 0 12px var(--primary-glow);
+        }
+
         /* Notifications Bell & Drawer (Day 30 Feature) */
         .notification-bell-btn {
             position: relative;
@@ -1324,6 +1383,56 @@
         </div>
     </dialog>
 
+    <!-- Modal for Shipment Tracking & Visual Timeline -->
+    <dialog id="tracking-modal" style="max-width: 560px;">
+        <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 1rem;">
+            <div>
+                <span class="day-tag" style="margin-bottom: 0.35rem; display: inline-block;">🚚 Carrier Tracking Telemetry</span>
+                <h3 style="font-size: 1.3rem; margin: 0;" id="tracking-modal-title">Tracking Package</h3>
+                <div style="font-size: 0.85rem; color: var(--text-muted); margin-top: 0.25rem;">
+                    Tracking Number: <code id="tracking-modal-number" style="color: var(--accent-cyan); font-weight: bold;">TRK-...</code>
+                </div>
+            </div>
+            <button class="theme-toggle-btn" style="width: 28px; height: 28px; font-size: 0.8rem;" onclick="closeTrackingModal()" title="Close">✕</button>
+        </div>
+
+        <div id="tracking-modal-content">
+            <!-- Timeline injected via JS -->
+        </div>
+
+        <div style="display: flex; justify-content: flex-end; margin-top: 1.25rem;">
+            <button class="btn-action" style="background: var(--bg-elevated); color: var(--text-primary); border: 1px solid var(--border-color);" onclick="closeTrackingModal()">Close</button>
+        </div>
+    </dialog>
+
+    <!-- Modal for Customer Product Review Submission -->
+    <dialog id="review-modal">
+        <h3 style="font-size: 1.3rem; margin-bottom: 0.5rem;" id="modal-review-title">Leave Product Review</h3>
+        <p style="color: var(--text-secondary); font-size: 0.85rem; margin-bottom: 1rem;">
+            Verified Purchase: Rate and review this delivered product. Your review will be cached on the product catalog.
+        </p>
+
+        <input type="hidden" id="modal-review-product-id">
+        <div style="margin-bottom: 1rem;">
+            <label style="font-size: 0.8rem; color: var(--text-muted); display: block; margin-bottom: 0.35rem;">Rating:</label>
+            <select id="modal-review-rating" class="input-text" style="width: 100%;">
+                <option value="5">⭐⭐⭐⭐⭐ (5 Stars - Excellent)</option>
+                <option value="4">⭐⭐⭐⭐ (4 Stars - Good)</option>
+                <option value="3">⭐⭐⭐ (3 Stars - Average)</option>
+                <option value="2">⭐⭐ (2 Stars - Poor)</option>
+                <option value="1">⭐ (1 Star - Terrible)</option>
+            </select>
+        </div>
+
+        <label style="font-size: 0.8rem; color: var(--text-muted); display: block; margin-bottom: 0.35rem;">Review Comment:</label>
+        <textarea id="modal-review-comment" class="input-text" style="width: 100%; height: 90px; resize: vertical; margin-bottom: 1.25rem;" placeholder="Write your honest feedback..."></textarea>
+
+        <div style="display: flex; justify-content: flex-end; gap: 0.75rem;">
+            <button class="btn-action" style="background: var(--bg-elevated); color: var(--text-primary); border: 1px solid var(--border-color);" onclick="closeReviewModal()">Cancel</button>
+            <button class="btn-action" style="background: var(--accent-emerald);" onclick="submitCustomerReview()">Submit Review</button>
+        </div>
+    </dialog>
+
     <!-- Live API Telemetry Console (Bottom Drawer) -->
     <div class="api-telemetry-drawer" id="api-drawer">
         <div class="drawer-handle" onclick="toggleApiDrawer()">
@@ -1794,6 +1903,7 @@
             c.innerHTML = orders.map(o => {
                 const statusClass = `badge-${o.status}`;
                 const isDisputeEligible = ['paid', 'shipped', 'delivered'].includes(o.status);
+                const items = o.items || [];
 
                 return `
                     <div class="order-card">
@@ -1808,12 +1918,32 @@
                             </div>
                         </div>
 
-                        <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem; font-size: 0.85rem;">
+                        ${items.length > 0 ? `
+                            <div style="margin: 0.75rem 0; font-size: 0.85rem; border-top: 1px solid var(--border-color); padding-top: 0.5rem;">
+                                ${items.map(item => `
+                                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.35rem;">
+                                        <span>${item.name} × ${item.quantity}</span>
+                                        ${o.status === 'delivered' ? `
+                                            <button class="btn-action" style="background: rgba(16, 185, 129, 0.15); border: 1px solid var(--accent-emerald); color: var(--accent-emerald); padding: 0.25rem 0.6rem; font-size: 0.75rem;" onclick="openReviewModal(${item.product_id}, '${(item.name || 'Product').replace(/'/g, "\\'")}')">
+                                                ⭐ Review Product
+                                            </button>
+                                        ` : ''}
+                                    </div>
+                                `).join('')}
+                            </div>
+                        ` : ''}
+
+                        <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem; font-size: 0.85rem; margin-top: 0.5rem;">
                             <div>
                                 <div><strong>Payment Reference:</strong> <code>${o.payment_reference || 'N/A'}</code></div>
                                 ${o.refund_reference ? `<div style="color: var(--accent-rose); margin-top: 0.25rem;"><strong>Refund Reference (Day 27):</strong> <code>${o.refund_reference}</code> (Reason: ${o.refund_reason || 'Dispute'})</div>` : ''}
                             </div>
-                            <div>
+                            <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
+                                ${['shipped', 'delivered'].includes(o.status) ? `
+                                    <button class="btn-action" style="background: rgba(99, 102, 241, 0.15); border: 1px solid var(--primary); color: var(--primary-hover); padding: 0.4rem 0.85rem; font-size: 0.8rem;" onclick="trackOrderShipment(${o.id})">
+                                        🚚 Live Tracking
+                                    </button>
+                                ` : ''}
                                 ${isDisputeEligible && !o.refund_reference ? `
                                     <button class="btn-action" style="background: var(--bg-elevated); border: 1px solid var(--accent-rose); color: var(--accent-rose); padding: 0.4rem 0.85rem; font-size: 0.8rem;" onclick="openDisputeModal(${o.id})">
                                         ⚠️ File Dispute (Day 27)
@@ -1856,6 +1986,101 @@
             }
         }
 
+        // Tracking Modal Functions
+        async function trackOrderShipment(orderId) {
+            try {
+                const res = await callApi(`/api/v1/orders/${orderId}/shipments`);
+                const shipments = res.data?.shipments || [];
+                if (!shipments.length) {
+                    showToast('No shipment tracking registered for this order yet.', 'info');
+                    return;
+                }
+                trackTrackingNumber(shipments[0].tracking_number);
+            } catch (err) {
+                showToast(err.message, 'error');
+            }
+        }
+
+        async function trackTrackingNumber(trackingNumber) {
+            try {
+                const res = await callApi(`/api/v1/shipments/track/${trackingNumber}`);
+                const data = res.data;
+                document.getElementById('tracking-modal-number').textContent = data.tracking_number;
+
+                const timelineHtml = (data.timeline || []).map(step => `
+                    <div class="timeline-step ${step.completed ? 'completed' : ''} ${step.current ? 'current' : ''}">
+                        <div class="timeline-icon-box">${step.icon}</div>
+                        <div>
+                            <div style="font-weight: 700; font-size: 0.95rem; color: ${step.completed ? 'var(--text-primary)' : 'var(--text-muted)'};">
+                                ${step.label} ${step.current ? '<span style="font-size: 0.75rem; color: var(--primary); margin-left: 0.5rem; font-weight: 600;">(Current Milestone)</span>' : ''}
+                            </div>
+                            <div style="font-size: 0.8rem; color: var(--text-muted);">${step.description}</div>
+                        </div>
+                    </div>
+                `).join('');
+
+                const container = document.getElementById('tracking-modal-content');
+                container.innerHTML = `
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.25rem; border-bottom: 1px solid var(--border-color); padding-bottom: 0.75rem;">
+                        <div>
+                            <div style="font-size: 0.8rem; color: var(--text-muted);">Tracking Number</div>
+                            <code style="font-size: 1.1rem; font-weight: 800; color: var(--primary);">${data.tracking_number}</code>
+                        </div>
+                        <div style="text-align: right;">
+                            <div style="font-size: 0.8rem; color: var(--text-muted);">Carrier Status</div>
+                            <span class="status-badge" style="background: rgba(99, 102, 241, 0.2); color: var(--primary-hover); text-transform: capitalize;">
+                                ${data.status_icon} ${data.status_label}
+                            </span>
+                        </div>
+                    </div>
+                    ${data.carrier ? `<div style="font-size: 0.85rem; margin-bottom: 1rem; color: var(--text-secondary);"><strong>Carrier:</strong> ${data.carrier.toUpperCase()} ${data.estimated_delivery_at ? `• <strong>Est. Delivery:</strong> ${new Date(data.estimated_delivery_at).toLocaleDateString()}` : ''}</div>` : ''}
+                    <div class="timeline-container">
+                        ${timelineHtml}
+                    </div>
+                `;
+
+                document.getElementById('tracking-modal').showModal();
+            } catch (err) {
+                showToast(err.message, 'error');
+            }
+        }
+
+        function closeTrackingModal() {
+            document.getElementById('tracking-modal').close();
+        }
+
+        // Review Modal Functions
+        function openReviewModal(productId, productName) {
+            document.getElementById('modal-review-product-id').value = productId;
+            document.getElementById('modal-review-title').textContent = `Write a Review for "${productName}"`;
+            document.getElementById('modal-review-rating').value = '5';
+            document.getElementById('modal-review-comment').value = '';
+            document.getElementById('review-modal').showModal();
+        }
+
+        function closeReviewModal() {
+            document.getElementById('review-modal').close();
+        }
+
+        async function submitCustomerReview() {
+            const productId = document.getElementById('modal-review-product-id').value;
+            const rating = parseInt(document.getElementById('modal-review-rating').value, 10);
+            const comment = document.getElementById('modal-review-comment').value.trim();
+
+            if (!rating || rating < 1 || rating > 5) {
+                showToast('Please select a rating between 1 and 5 stars.', 'error');
+                return;
+            }
+
+            try {
+                await callApi(`/api/v1/products/${productId}/reviews`, 'POST', { rating, comment });
+                showToast('Review submitted successfully! Thank you for your feedback.', 'success');
+                closeReviewModal();
+            } catch (err) {
+                showToast(err.message, 'error');
+            }
+        }
+
         // Vendor Portal
         async function fetchVendorDashboard() {
             if (!state.token) return;
@@ -1882,27 +2107,69 @@
                     return;
                 }
 
-                c.innerHTML = lines.map(line => `
-                    <div style="display: flex; justify-content: space-between; align-items: center; padding: 0.85rem; border-bottom: 1px solid var(--border-color);">
+                c.innerHTML = lines.map(line => {
+                    const shipment = line.shipment;
+                    return `
+                    <div style="display: flex; justify-content: space-between; align-items: center; padding: 0.85rem; border-bottom: 1px solid var(--border-color); flex-wrap: wrap; gap: 0.75rem;">
                         <div>
                             <span style="font-weight: 600;">Order #${line.order_id}</span> • <span>${line.name || 'Product'} (Qty: ${line.quantity})</span>
+                            ${shipment ? `
+                                <div style="font-size: 0.75rem; color: var(--text-muted); margin-top: 0.25rem;">
+                                    Tracking: <code style="cursor: pointer; color: var(--primary);" onclick="trackTrackingNumber('${shipment.tracking_number}')">${shipment.tracking_number}</code>
+                                    • Status: <strong style="text-transform: capitalize; color: var(--accent-emerald);">${(shipment.status || '').replace(/_/g, ' ')}</strong>
+                                </div>
+                            ` : ''}
                         </div>
-                        <div>
-                            <button class="btn-action" style="padding: 0.4rem 0.8rem; font-size: 0.8rem;" onclick="shipVendorLine(${line.order_id}, ${line.id})">
-                                🚚 Ship Item (Mock Tracking)
-                            </button>
+                        <div style="display: flex; gap: 0.4rem; align-items: center; flex-wrap: wrap;">
+                            ${!shipment ? `
+                                <button class="btn-action" style="padding: 0.4rem 0.8rem; font-size: 0.8rem;" onclick="shipVendorLine(${line.order_id}, ${line.id})">
+                                    🚚 Ship Item
+                                </button>
+                            ` : `
+                                <button class="btn-action" style="background: rgba(99, 102, 241, 0.15); border: 1px solid var(--primary); color: var(--primary-hover); padding: 0.4rem 0.8rem; font-size: 0.8rem;" onclick="trackTrackingNumber('${shipment.tracking_number}')">
+                                    🔍 Track
+                                </button>
+                                ${shipment.status === 'processing' ? `
+                                    <button class="btn-action" style="background: var(--accent-amber); color: #000; padding: 0.4rem 0.8rem; font-size: 0.8rem;" onclick="advanceShipmentStatus(${shipment.id}, 'in_transit')">
+                                        ✈️ In Transit
+                                    </button>
+                                ` : ''}
+                                ${shipment.status === 'in_transit' ? `
+                                    <button class="btn-action" style="background: #3b82f6; color: #fff; padding: 0.4rem 0.8rem; font-size: 0.8rem;" onclick="advanceShipmentStatus(${shipment.id}, 'out_for_delivery')">
+                                        🛵 Out for Delivery
+                                    </button>
+                                ` : ''}
+                                ${shipment.status === 'out_for_delivery' ? `
+                                    <button class="btn-action" style="background: var(--accent-emerald); color: #fff; padding: 0.4rem 0.8rem; font-size: 0.8rem;" onclick="advanceShipmentStatus(${shipment.id}, 'delivered')">
+                                        ✅ Delivered
+                                    </button>
+                                ` : ''}
+                                ${shipment.status === 'delivered' ? `
+                                    <span style="font-size: 0.75rem; color: var(--accent-emerald); font-weight: 700;">✓ Delivered</span>
+                                ` : ''}
+                            `}
                         </div>
                     </div>
-                `).join('');
+                `}).join('');
             } catch (err) {
                 console.error(err);
+            }
+        }
+
+        async function advanceShipmentStatus(shipmentId, status) {
+            try {
+                await callApi(`/api/v1/vendor/shipments/${shipmentId}/status`, 'PATCH', { status });
+                showToast(`Shipment updated to ${status.replace(/_/g, ' ')}!`, 'success');
+                fetchVendorOrders();
+            } catch (err) {
+                showToast(err.message, 'error');
             }
         }
 
         async function shipVendorLine(orderId, itemId) {
             try {
                 const res = await callApi(`/api/v1/vendor/orders/${orderId}/items/${itemId}/ship`, 'POST');
-                showToast(`Shipped! Tracking: ${res.data?.shipment?.tracking_number || 'TRACK-MOCK'}`, 'success');
+                showToast(`Shipped! Tracking: ${res.data?.shipment?.tracking_number || 'TRK-LIVE'}`, 'success');
                 fetchVendorOrders();
             } catch (err) {
                 showToast(err.message, 'error');
