@@ -2,6 +2,7 @@
 
 namespace Tests\Unit;
 
+use App\Enums\ShipmentStatus;
 use App\Models\OrderItem;
 use App\Models\Shipment;
 use App\Services\ShipmentTrackingService;
@@ -50,7 +51,7 @@ class ShipmentTrackingServiceTest extends TestCase
 
         $this->assertInstanceOf(Shipment::class, $shipment);
         $this->assertSame('TRK-TEST-1', $shipment->tracking_number);
-        $this->assertSame('processing', $shipment->status);
+        $this->assertSame(ShipmentStatus::PROCESSING, $shipment->status);
         $this->assertNotNull($shipment->shipped_at);
 
         $found = $service->findByOrderItem($item);

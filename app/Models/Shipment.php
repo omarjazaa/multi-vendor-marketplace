@@ -2,10 +2,12 @@
 
 namespace App\Models;
 
+use App\Enums\ShipmentStatus;
 use Database\Factories\ShipmentFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasOneThrough;
 
 class Shipment extends Model
 {
@@ -19,7 +21,7 @@ class Shipment extends Model
     protected function casts(): array
     {
         return [
-            'status' => 'string',
+            'status' => ShipmentStatus::class,
             'shipped_at' => 'datetime',
             'delivered_at' => 'datetime',
         ];
@@ -31,9 +33,15 @@ class Shipment extends Model
         return $this->belongsTo(OrderItem::class);
     }
 
-    /** The order behind the shipped line — resolved through the item snapshot. */
-    public function order(): ?BelongsTo
+    /** The order behind the shipped line. */
+    public function order(): HasOneThrough
     {
-        return $this->orderItem?->order();
+        return $this->hasOneThrough(Order::class, OrderItem::class, 'id', 'id', 'order_item_id', 'order_id');
+    }
+
+    /** Determine whether the shipment has been delivered. */
+    public function isDelivered(): bool
+    {
+        return $this->status === ShipmentStatus::DELIVERED;
     }
 }

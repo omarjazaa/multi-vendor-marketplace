@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Models\Order;
+use App\Models\Shipment;
 use App\Models\User;
 use App\Notifications\Channels\ChannelResult;
 use App\Notifications\Channels\NotificationChannelFactory;
@@ -75,6 +76,34 @@ final class OrderNotificationService
                         'name' => (string) $item->name,
                         'quantity' => (int) $item->quantity,
                     ])->values()->all(),
+                ],
+            ),
+        );
+    }
+
+    /** Tell the customer their package was delivered and invite them to leave a review. */
+    public function notifyDelivered(Order $order, ?Shipment $shipment = null): ?ChannelResult
+    {
+        $customer = $this->resolveCustomer($order);
+
+        if ($customer === null) {
+            return null;
+        }
+
+        $tracking = $shipment?->tracking_number ?? 'carrier package';
+
+        return $this->deliver(
+            $customer,
+            (string) config('marketplace.notifications.customer_channel', 'database'),
+            NotificationPayload::make(
+                'customer_order_delivered',
+                sprintf('Package Delivered for Order #%d', (int) $order->id),
+                sprintf('Your shipment (%s) has been delivered! You can now write a review for your products.', $tracking),
+                [
+                    'order_id' => (int) $order->id,
+                    'status' => $order->status->value,
+                    'tracking_number' => $shipment?->tracking_number,
+                    'delivered_at' => ($shipment?->delivered_at ?? now())->toIso8601String(),
                 ],
             ),
         );
